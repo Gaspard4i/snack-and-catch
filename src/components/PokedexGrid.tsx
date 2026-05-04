@@ -114,12 +114,21 @@ export function PokedexGrid() {
     [filterKey],
   );
 
-  // Re-fetch whenever any filter changes. The key change is what
-  // matters; we do the reset inline so we don't introduce a callback
-  // identity that would force an extra dep on `reset`.
+  // Re-fetch whenever any filter changes. We bump the request id
+  // (so any in-flight response is dropped) AND abort the running
+  // fetch outright — letting it run wastes bandwidth and, more
+  // importantly, would race with the new fetch the next effect
+  // launches if the same connection slot resolves first.
+  //
+  // We don't kick the new fetch from this effect because at this
+  // point the `cursor`/`done` setStates are still queued — the
+  // captured closure for fetchPage still holds the previous cursor
+  // and would request a stale page. The "kick" effect below depends
+  // on the post-reset states and runs in the next commit.
   useEffect(() => {
     reqIdRef.current += 1;
     inFlightRef.current = false;
+    abortRef.current?.abort();
     setResults([]);
     setCursor(null);
     setDone(false);
@@ -186,9 +195,23 @@ export function PokedexGrid() {
   // Abort any in-flight fetch when the component unmounts.
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // Kick the first page when the grid is empty and we are not done.
+  // This fires:
+  //   - on first mount (results=[], done=false → fetch)
+  //   - after a filter reset, on the commit after the reset effect
+  //     (cursor is null, done is false, so fetchPage uses the fresh
+  //     buildUrl and queries from the start).
+  // We must NOT include `fetchPage` directly in deps; otherwise it
+  // would also fire after every successful page fetch (because
+  // `fetchPage` regens on every cursor tick) — but the
+  // `results.length === 0` guard already prevents that. The lint
+  // disable below is to opt out of the cascade-trigger.
   useEffect(() => {
-    if (results.length === 0 && !done) fetchPage();
-  }, [results.length, done, fetchPage]);
+    if (results.length === 0 && !done && !inFlightRef.current) {
+      fetchPage();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results.length, done, filterKey]);
 
   useEffect(() => {
     const el = sentinel.current;
