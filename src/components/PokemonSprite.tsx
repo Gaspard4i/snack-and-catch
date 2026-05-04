@@ -4,10 +4,15 @@ import { useMemo, useState } from "react";
 import { spriteCandidates } from "@/lib/sprites/pokemon-sprite";
 
 /**
- * Variant-aware Pokémon sprite. Cascades through Pokemon Showdown's
- * `dex` set (variant-aware) and PokeAPI's dex-number sprite as
- * fallback. When everything 404s we render a circular dex-number
- * badge so the layout never collapses to a broken-image icon.
+ * Variant-aware Pokémon sprite. Cascades through:
+ *   cobblemon.tools (3D portrait) → Showdown → pokesprite Gen 8 →
+ *   PokeAPI dex sprite (base species only) → official artwork (base
+ *   species only) → silhouette badge.
+ *
+ * cobblemon.tools serves a 96×96 transparent placeholder (HTTP 200) for
+ * Pokémon they haven't pre-rendered yet (e.g. Togepi). The real renders
+ * are 256×256, so we treat anything smaller from that origin as a miss
+ * and advance the cascade.
  *
  * The sprite is a plain <img>, not next/image, because variant
  * sprites change frequently and Next's optimizer is overkill for
@@ -52,21 +57,33 @@ export function PokemonSprite({
     );
   }
 
+  const currentUrl = candidates[idx];
+  const isCobblemon = currentUrl.includes("cobblemon.tools");
   // Cobblemon portraits are anti-aliased 3D renders — applying the
   // `.pixel` class would crisp-edge them into something ugly. Only
-  // the pixel-art fallbacks (Showdown / PokeAPI) wear that class.
-  const isPixelArt = idx >= 1;
+  // pixel-art sources (Showdown / pokesprite / PokeAPI) wear it.
+  const isPixelArt = !isCobblemon;
 
   return (
     <img
-      key={candidates[idx]}
-      src={candidates[idx]}
+      key={currentUrl}
+      src={currentUrl}
       alt={name}
       width={size}
       height={size}
       loading="lazy"
       decoding="async"
       onError={() => setIdx((i) => i + 1)}
+      onLoad={(e) => {
+        // cobblemon.tools 200s with a 96×96 transparent placeholder
+        // for missing Pokémon; the real renders are 256×256. Anything
+        // smaller from that origin is a miss → advance the cascade.
+        if (!isCobblemon) return;
+        const img = e.currentTarget;
+        if (img.naturalWidth < 200 || img.naturalHeight < 200) {
+          setIdx((i) => i + 1);
+        }
+      }}
       className={`inline-block object-contain shrink-0 ${
         isPixelArt ? "pixel" : ""
       } ${className}`}

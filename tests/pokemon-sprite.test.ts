@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   cobblemonToolsSlug,
   showdownSlug,
+  pokespriteSlug,
   spriteCandidates,
 } from "@/lib/sprites/pokemon-sprite";
 
@@ -42,8 +43,6 @@ describe("cobblemonToolsSlug", () => {
 
 describe("showdownSlug", () => {
   it("keeps the regional `-n` suffix", () => {
-    // Showdown spells the regional families with the `-n` ending we
-    // already use in the DB (`vulpix-alolan`).
     expect(
       showdownSlug({ name: "Vulpix", baseSlug: "vulpix", variantLabel: "alolan" }),
     ).toBe("vulpix-alolan");
@@ -60,32 +59,52 @@ describe("showdownSlug", () => {
   });
 });
 
+describe("pokespriteSlug", () => {
+  it("uses the short regional form (alola/galar/hisui/paldea)", () => {
+    expect(
+      pokespriteSlug({ name: "Vulpix", baseSlug: "vulpix", variantLabel: "alolan" }),
+    ).toBe("vulpix-alola");
+    expect(
+      pokespriteSlug({
+        name: "Tauros",
+        baseSlug: "tauros",
+        variantLabel: "paldean-combat",
+      }),
+    ).toBe("tauros-paldea-combat");
+  });
+});
+
 describe("spriteCandidates", () => {
-  it("emits Cobblemon → Showdown → PokeAPI sprite → official artwork", () => {
+  it("base species cascade: Cobblemon → Showdown → pokesprite → PokeAPI sprite → official artwork", () => {
     const c = spriteCandidates({ dexNo: 6, name: "Charizard", baseSlug: "charizard" });
     expect(c[0]).toContain("cobblemon.tools/pokedex/pokemon/charizard/sprite.png");
     expect(c[1]).toContain("pokemonshowdown.com/sprites/dex/charizard.png");
-    expect(c[2]).toContain("PokeAPI/sprites@master/sprites/pokemon/6.png");
-    expect(c[3]).toContain("official-artwork/6.png");
+    expect(c[2]).toContain("pokesprite/master/pokemon-gen8/regular/charizard.png");
+    expect(c[3]).toContain("PokeAPI/sprites@master/sprites/pokemon/6.png");
+    expect(c[4]).toContain("official-artwork/6.png");
+    expect(c).toHaveLength(5);
   });
 
-  it("falls back to the base Cobblemon portrait before leaving the family", () => {
+  it("variant cascade stops at pokesprite — never falls back to the base sprite", () => {
     const c = spriteCandidates({
       dexNo: 37,
       name: "Vulpix",
       baseSlug: "vulpix",
       variantLabel: "alolan",
     });
-    // 1. Cobblemon variant
     expect(c[0]).toContain("cobblemon.tools/pokedex/pokemon/vulpix-alola/sprite.png");
-    // 2. Cobblemon base form (so the look stays consistent if the
-    //    variant render isn't published yet)
-    expect(c[1]).toContain("cobblemon.tools/pokedex/pokemon/vulpix/sprite.png");
-    // 3. Then Showdown for the variant
-    expect(c[2]).toContain("pokemonshowdown.com/sprites/dex/vulpix-alolan.png");
+    expect(c[1]).toContain("pokemonshowdown.com/sprites/dex/vulpix-alolan.png");
+    expect(c[2]).toContain("pokesprite/master/pokemon-gen8/regular/vulpix-alola.png");
+    expect(c).toHaveLength(3);
+    // No PokeAPI dex-number nor base-form Cobblemon URL — would render
+    // the wrong species.
+    for (const url of c) {
+      expect(url).not.toContain("PokeAPI/sprites@master/sprites/pokemon/37.png");
+      expect(url).not.toContain("/pokemon/vulpix/sprite.png");
+    }
   });
 
-  it("routes shiny variants to the shiny PokeAPI/Showdown paths", () => {
+  it("routes shiny base species to shiny paths in every source", () => {
     const c = spriteCandidates({
       dexNo: 6,
       name: "Charizard",
@@ -94,6 +113,21 @@ describe("spriteCandidates", () => {
     });
     expect(c[0]).toContain("cobblemon.tools/pokedex/pokemon/charizard/sprite.png");
     expect(c[1]).toContain("dex-shiny/charizard.png");
-    expect(c[2]).toContain("/shiny/6.png");
+    expect(c[2]).toContain("pokemon-gen8/shiny/charizard.png");
+    expect(c[3]).toContain("/shiny/6.png");
+  });
+
+  it("routes shiny variants to shiny paths and still stops at pokesprite", () => {
+    const c = spriteCandidates({
+      dexNo: 37,
+      name: "Vulpix",
+      baseSlug: "vulpix",
+      variantLabel: "alolan",
+      shiny: true,
+    });
+    expect(c[0]).toContain("cobblemon.tools/pokedex/pokemon/vulpix-alola/sprite.png");
+    expect(c[1]).toContain("dex-shiny/vulpix-alolan.png");
+    expect(c[2]).toContain("pokemon-gen8/shiny/vulpix-alola.png");
+    expect(c).toHaveLength(3);
   });
 });
