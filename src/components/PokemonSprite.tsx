@@ -4,20 +4,13 @@ import { useMemo, useState } from "react";
 import { spriteCandidates } from "@/lib/sprites/pokemon-sprite";
 
 /**
- * Variant-aware Pokémon sprite. Cascades through:
- *   cobblemon.tools (3D portrait) → Showdown → pokesprite Gen 8 →
- *   PokeAPI dex sprite (base species only) → official artwork (base
- *   species only) → silhouette badge.
+ * Variant-aware Pokémon sprite. Cascades through pokesprite Gen 8 →
+ * Pokémon Showdown dex → PokeAPI dex sprite → official artwork →
+ * silhouette badge. Variants stop after Showdown so they never render
+ * the base species' sprite.
  *
- * cobblemon.tools serves a 96×96 transparent placeholder (HTTP 200) for
- * Pokémon they haven't pre-rendered yet (e.g. Togepi). The real renders
- * are 256×256, so we treat anything smaller from that origin as a miss
- * and advance the cascade.
- *
- * The sprite is a plain <img>, not next/image, because variant
- * sprites change frequently and Next's optimizer is overkill for
- * 60-pixel art assets — keeping it simple avoids the
- * `remotePatterns` config + the deopt of `unoptimized`.
+ * Plain <img>, not next/image — variant sprites change frequently and
+ * Next's optimizer is overkill for 60-pixel pixel-art assets.
  */
 export function PokemonSprite({
   dexNo,
@@ -30,7 +23,7 @@ export function PokemonSprite({
 }: {
   dexNo: number;
   name: string;
-  /** Base species slug — used to build the Showdown URL. */
+  /** Base species slug — used to build the variant URLs. */
   baseSlug?: string | null;
   variantLabel?: string | null;
   size?: number;
@@ -58,12 +51,9 @@ export function PokemonSprite({
   }
 
   const currentUrl = candidates[idx];
-  const isCobblemon = currentUrl.includes("cobblemon.tools");
-  // Cobblemon portraits are anti-aliased 3D renders — applying the
-  // `.pixel` class would crisp-edge them into something ugly. Only
-  // pixel-art sources (Showdown / pokesprite / PokeAPI) wear it.
-  const isPixelArt = !isCobblemon;
-
+  // Every cascade source is pixel art (pokesprite, Showdown, PokeAPI
+  // sprites). Official-artwork is high-res so it doesn't hurt to be
+  // pixelated either.
   return (
     <img
       key={currentUrl}
@@ -74,19 +64,7 @@ export function PokemonSprite({
       loading="lazy"
       decoding="async"
       onError={() => setIdx((i) => i + 1)}
-      onLoad={(e) => {
-        // cobblemon.tools 200s with a 96×96 transparent placeholder
-        // for missing Pokémon; the real renders are 256×256. Anything
-        // smaller from that origin is a miss → advance the cascade.
-        if (!isCobblemon) return;
-        const img = e.currentTarget;
-        if (img.naturalWidth < 200 || img.naturalHeight < 200) {
-          setIdx((i) => i + 1);
-        }
-      }}
-      className={`inline-block object-contain shrink-0 ${
-        isPixelArt ? "pixel" : ""
-      } ${className}`}
+      className={`inline-block object-contain shrink-0 pixel ${className}`}
       style={{ width: size, height: size }}
     />
   );
