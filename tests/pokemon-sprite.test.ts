@@ -3,6 +3,7 @@ import {
   showdownSlug,
   pokespriteSlug,
   spriteCandidates,
+  isSilhouetteOnly,
 } from "@/lib/sprites/pokemon-sprite";
 
 describe("showdownSlug", () => {
@@ -113,6 +114,70 @@ describe("spriteCandidates", () => {
     expect(c[0]).toContain("pokemon-gen8/shiny/charizard.png");
     expect(c[1]).toContain("dex-shiny/charizard.png");
     expect(c[2]).toContain("/shiny/6.png");
+  });
+
+  it("handles species-specific overrides — Tauros breeds map to PokeAPI extended ids", () => {
+    const c = spriteCandidates({
+      dexNo: 128,
+      name: "Tauros",
+      baseSlug: "tauros",
+      variantLabel: "blaze-breed",
+    });
+    expect(c[0]).toContain("pokesprite/master/pokemon-gen8/regular/tauros-paldea-blaze-breed.png");
+    expect(c[1]).toContain("pokemonshowdown.com/sprites/dex/tauros-paldea-blaze.png");
+    // PokeAPI extended id 10251 for Tauros Paldean Blaze Breed.
+    expect(c[2]).toContain("/sprites/pokemon/10251.png");
+  });
+
+  it("strips Cobblemon trailing suffixes (`-form`, `-mode`, `-plate` …)", () => {
+    expect(
+      showdownSlug({ name: "Tornadus", baseSlug: "tornadus", variantLabel: "therian-forme" }),
+    ).toBe("tornadus-therian");
+    expect(
+      showdownSlug({ name: "Darmanitan", baseSlug: "darmanitan", variantLabel: "zen-mode" }),
+    ).toBe("darmanitan-zen");
+    expect(
+      showdownSlug({ name: "Arceus", baseSlug: "arceus", variantLabel: "fire-plate" }),
+    ).toBe("arceus-fire");
+  });
+
+  it("normalises Oricorio's `pa'u` apostrophe", () => {
+    expect(
+      showdownSlug({ name: "Oricorio", baseSlug: "oricorio", variantLabel: "pa'u-style" }),
+    ).toBe("oricorio-pau");
+  });
+
+  it("collapses Zygarde 50-percent to the base sprite", () => {
+    // The 50% form is the published default; both pokesprite and
+    // Showdown serve it as plain `zygarde`.
+    expect(
+      showdownSlug({ name: "Zygarde", baseSlug: "zygarde", variantLabel: "50-percent" }),
+    ).toBe("zygarde");
+  });
+
+  it("flags Cobblemon-only region-bias aspects as silhouette-only", () => {
+    expect(
+      isSilhouetteOnly({ baseSlug: "pikachu", variantLabel: "region-bias-alola" }),
+    ).toBe(true);
+    expect(
+      isSilhouetteOnly({ baseSlug: "vulpix", variantLabel: "alolan" }),
+    ).toBe(false);
+    const c = spriteCandidates({
+      dexNo: 25,
+      name: "Pikachu",
+      baseSlug: "pikachu",
+      variantLabel: "region-bias-alola",
+    });
+    expect(c).toEqual([]);
+  });
+
+  it("rewrites Unown's character-aspect into the canonical letter slug", () => {
+    expect(
+      showdownSlug({ name: "Unown", baseSlug: "unown", variantLabel: "character-s" }),
+    ).toBe("unown-s");
+    expect(
+      showdownSlug({ name: "Unown", baseSlug: "unown", variantLabel: "character-!" }),
+    ).toBe("unown-exclamation");
   });
 
   it("routes shiny variants to shiny paths and still stops at Showdown", () => {
