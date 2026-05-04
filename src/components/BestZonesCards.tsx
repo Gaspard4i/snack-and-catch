@@ -27,6 +27,8 @@ function prettyBiome(biome: string | null): string | null {
 function snackHref(zone: ZoneRecommendation): string {
   const u = new URLSearchParams();
   u.set("dimension", zone.dimension);
+  // We strip the leading `#` so the URL stays clean (`%23` ugliness is
+  // avoided); the maker re-adds it when the namespace is `cobblemon:`.
   if (zone.biome) u.set("biome", zone.biome.replace(/^#/, ""));
   for (const slug of zone.berrySlugs) u.append("seasoning", slug);
   return `/snack?${u.toString()}`;

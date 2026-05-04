@@ -494,6 +494,47 @@ export function CampfirePot({ mode = "snack" }: { mode?: PotMode } = {}) {
   }, [seasonings]);
 
   /**
+   * Hydrate the maker from a `/snack?dimension=...&biome=...&seasoning=...`
+   * deep-link, used by the per-species "best zones" cards on
+   * /pokemon/[slug]. Runs once the seasoning catalog is loaded so we can
+   * resolve slug → Seasoning. The URL is then stripped so a refresh
+   * doesn't re-apply (mirrors the `?load=` flow above).
+   */
+  useEffect(() => {
+    if (seasonings.length === 0) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const dimParam = params.get("dimension");
+    const biomeParam = params.get("biome");
+    const seasoningParams = params.getAll("seasoning");
+    if (!dimParam && !biomeParam && seasoningParams.length === 0) return;
+
+    if (dimParam) setDimensions([dimParam]);
+    if (biomeParam) {
+      // Cobblemon biome tags (`cobblemon:is_*`, `cobblemon:nether/is_*`)
+      // live in the catalog with a leading `#`; vanilla biomes
+      // (`minecraft:plains`) do not. Normalise based on the namespace.
+      const stripped = biomeParam.replace(/^#/, "");
+      const isTag = stripped.startsWith("cobblemon:");
+      setBiomes([isTag ? `#${stripped}` : stripped]);
+    }
+    if (seasoningParams.length > 0) {
+      const next: SlotState = [null, null, null];
+      seasoningParams.slice(0, 3).forEach((slug, i) => {
+        const s = seasonings.find((x) => x.slug === slug);
+        if (s) next[i] = s;
+      });
+      setSlots(next);
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("dimension");
+    url.searchParams.delete("biome");
+    url.searchParams.delete("seasoning");
+    window.history.replaceState({}, "", url.toString());
+  }, [seasonings]);
+
+  /**
    * The cross-axis filter that all dropdowns share. We assemble it from
    * every UI state so each axis can ask "given the OTHER selections,
    * what values are still reachable?".
