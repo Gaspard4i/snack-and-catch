@@ -1,6 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
+import { R3FErrorBoundary } from "@/components/R3FErrorBoundary";
 import { Grid, OrbitControls } from "@react-three/drei";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -164,6 +165,7 @@ export function Berry3D(props: Props) {
         "rounded-lg border border-border bg-subtle overflow-hidden h-full min-h-[320px] relative"
       }
     >
+      <R3FErrorBoundary>
       <Canvas
         key={canvasKey}
         camera={{ position: [0.6, 0.45, 0.6], fov: 30, near: 0.01, far: 100 }}
@@ -196,6 +198,7 @@ export function Berry3D(props: Props) {
 
         <OrbitControls enablePan enableDamping dampingFactor={0.1} />
       </Canvas>
+      </R3FErrorBoundary>
     </div>
   );
 }

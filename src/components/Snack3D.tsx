@@ -7,6 +7,7 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { TextureLoader, NearestFilter, type Texture } from "three";
 import * as THREE from "three";
 import { getBerryPivot } from "@/lib/snack/berry-pivots";
+import { R3FErrorBoundary } from "@/components/R3FErrorBoundary";
 
 /**
  * Faithful reproduction of cobblemon's `poke_snack.json` block model:
@@ -583,37 +584,39 @@ export function Snack3D({
       style={{ width: size, height: size }}
     >
       {mounted && (
-        <Canvas
-          key={canvasKey}
-          // Camera moved slightly higher (y 1.1 → 1.35) so the snack sits
-          // lower in the framed preview with a bit more headroom on top.
-          camera={{ position: [1.4, 1.35, 1.4], fov: 30 }}
-          resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
-          // Preserve drawing buffer = longer retention after a tab switch
-          // on some mobile GPUs. Slight perf cost, invisible here.
-          gl={{ preserveDrawingBuffer: true, powerPreference: "default" }}
-        >
-          <ambientLight intensity={0.8} />
-          <directionalLight position={[3, 4, 2]} intensity={1.1} />
-          <Suspense fallback={null}>
-            <SnackMesh
-              berries={berries}
-              fallbackFlavour={flavour ?? null}
-              potColour={potColour ?? null}
-              spin
-            />
-          </Suspense>
-          {interactive && (
-            <OrbitControls
-              enablePan={false}
-              enableDamping
-              dampingFactor={0.1}
-              minDistance={0.6}
-              maxDistance={4}
-              target={[0, 0.2, 0]}
-            />
-          )}
-        </Canvas>
+        <R3FErrorBoundary>
+          <Canvas
+            key={canvasKey}
+            // Camera moved slightly higher (y 1.1 → 1.35) so the snack sits
+            // lower in the framed preview with a bit more headroom on top.
+            camera={{ position: [1.4, 1.35, 1.4], fov: 30 }}
+            resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
+            // Preserve drawing buffer = longer retention after a tab switch
+            // on some mobile GPUs. Slight perf cost, invisible here.
+            gl={{ preserveDrawingBuffer: true, powerPreference: "default" }}
+          >
+            <ambientLight intensity={0.8} />
+            <directionalLight position={[3, 4, 2]} intensity={1.1} />
+            <Suspense fallback={null}>
+              <SnackMesh
+                berries={berries}
+                fallbackFlavour={flavour ?? null}
+                potColour={potColour ?? null}
+                spin
+              />
+            </Suspense>
+            {interactive && (
+              <OrbitControls
+                enablePan={false}
+                enableDamping
+                dampingFactor={0.1}
+                minDistance={0.6}
+                maxDistance={4}
+                target={[0, 0.2, 0]}
+              />
+            )}
+          </Canvas>
+        </R3FErrorBoundary>
       )}
     </div>
   );

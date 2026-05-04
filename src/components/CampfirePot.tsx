@@ -499,6 +499,13 @@ export function CampfirePot({ mode = "snack" }: { mode?: PotMode } = {}) {
    * /pokemon/[slug]. Runs once the seasoning catalog is loaded so we can
    * resolve slug → Seasoning. The URL is then stripped so a refresh
    * doesn't re-apply (mirrors the `?load=` flow above).
+   *
+   * Wrapped in `requestAnimationFrame` to push the slot/biome/dim updates
+   * past the first <Canvas> mount of <Snack3D>: setting all three
+   * synchronously inside the effect body races with R3F's pointer-event
+   * connect path, which throws `target is null` if the canvas DOM ref
+   * isn't attached yet (events-760a1017 line 16170). Deferring one
+   * frame lets the canvas attach before the cascade of re-renders.
    */
   useEffect(() => {
     if (seasonings.length === 0) return;
@@ -509,29 +516,34 @@ export function CampfirePot({ mode = "snack" }: { mode?: PotMode } = {}) {
     const seasoningParams = params.getAll("seasoning");
     if (!dimParam && !biomeParam && seasoningParams.length === 0) return;
 
-    if (dimParam) setDimensions([dimParam]);
-    if (biomeParam) {
-      // Cobblemon biome tags (`cobblemon:is_*`, `cobblemon:nether/is_*`)
-      // live in the catalog with a leading `#`; vanilla biomes
-      // (`minecraft:plains`) do not. Normalise based on the namespace.
-      const stripped = biomeParam.replace(/^#/, "");
-      const isTag = stripped.startsWith("cobblemon:");
-      setBiomes([isTag ? `#${stripped}` : stripped]);
-    }
-    if (seasoningParams.length > 0) {
-      const next: SlotState = [null, null, null];
-      seasoningParams.slice(0, 3).forEach((slug, i) => {
-        const s = seasonings.find((x) => x.slug === slug);
-        if (s) next[i] = s;
-      });
-      setSlots(next);
-    }
+    const apply = () => {
+      if (dimParam) setDimensions([dimParam]);
+      if (biomeParam) {
+        // Cobblemon biome tags (`cobblemon:is_*`, `cobblemon:nether/is_*`)
+        // live in the catalog with a leading `#`; vanilla biomes
+        // (`minecraft:plains`) do not. Normalise based on the namespace.
+        const stripped = biomeParam.replace(/^#/, "");
+        const isTag = stripped.startsWith("cobblemon:");
+        setBiomes([isTag ? `#${stripped}` : stripped]);
+      }
+      if (seasoningParams.length > 0) {
+        const next: SlotState = [null, null, null];
+        seasoningParams.slice(0, 3).forEach((slug, i) => {
+          const s = seasonings.find((x) => x.slug === slug);
+          if (s) next[i] = s;
+        });
+        setSlots(next);
+      }
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("dimension");
-    url.searchParams.delete("biome");
-    url.searchParams.delete("seasoning");
-    window.history.replaceState({}, "", url.toString());
+      const url = new URL(window.location.href);
+      url.searchParams.delete("dimension");
+      url.searchParams.delete("biome");
+      url.searchParams.delete("seasoning");
+      window.history.replaceState({}, "", url.toString());
+    };
+
+    const handle = window.requestAnimationFrame(apply);
+    return () => window.cancelAnimationFrame(handle);
   }, [seasonings]);
 
   /**
