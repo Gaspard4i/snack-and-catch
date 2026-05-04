@@ -328,6 +328,126 @@ function conditionMatches(cond: ConditionShape, filter: SpawnFilter): boolean {
   return true;
 }
 
+/**
+ * Anticondition test: returns `true` ONLY when every field set on the
+ * anticondition has been positively confronted with a corresponding
+ * filter value AND every check passed. If even one anti field cannot
+ * be evaluated (filter does not constrain that axis) the anti is
+ * non-applicable and must NOT reject the spawn.
+ *
+ * This matches Cobblemon's AND-strict semantics (GitLab #1737): all
+ * the anticondition's set fields have to match before the spawn is
+ * rejected. A field the world cannot supply means the anti is not
+ * triggered, so the spawn stays in the pool.
+ *
+ * Concretely, this fixes the long-standing bug where every Cobblemon
+ * spawn carrying `anticondition.neededBaseBlocks: [farmland]` was
+ * silently dropped from filter results that did not specify a base
+ * block (i.e. nearly every Snack-maker call), leaving 5 generic
+ * Pokémon visible in the Nether instead of the real lineup.
+ */
+function anticonditionRejects(anti: ConditionShape, filter: SpawnFilter): boolean {
+  let evaluated = 0;
+  let matched = 0;
+
+  const test = (canEvaluate: boolean, ok: boolean) => {
+    if (!canEvaluate) return;
+    evaluated += 1;
+    if (ok) matched += 1;
+  };
+
+  const biomeList = anti.biomes as string[] | undefined;
+  if (biomeList && biomeList.length > 0) {
+    if (filter.biomes && filter.biomes.length > 0) {
+      const fset = new Set(filter.biomes.map(stripHash));
+      test(true, biomeList.some((b) => fset.has(stripHash(b))));
+    }
+  }
+  const structList = anti.structures as string[] | undefined;
+  if (structList && structList.length > 0) {
+    if (filter.structures && filter.structures.length > 0) {
+      const fset = new Set(filter.structures.map(stripHash));
+      test(true, structList.some((s) => fset.has(stripHash(s))));
+    }
+  }
+  const dimList = anti.dimensions as string[] | undefined;
+  if (dimList && dimList.length > 0) {
+    if (filter.dimensions && filter.dimensions.length > 0) {
+      const fset = new Set(filter.dimensions);
+      test(true, dimList.some((d) => fset.has(d)));
+    }
+  }
+  if (typeof anti.minLight === "number" && typeof filter.lightLevel === "number") {
+    test(true, filter.lightLevel >= (anti.minLight as number));
+  }
+  if (typeof anti.maxLight === "number" && typeof filter.lightLevel === "number") {
+    test(true, filter.lightLevel <= (anti.maxLight as number));
+  }
+  if (typeof anti.minSkyLight === "number" && typeof filter.skyLightLevel === "number") {
+    test(true, filter.skyLightLevel >= (anti.minSkyLight as number));
+  }
+  if (typeof anti.maxSkyLight === "number" && typeof filter.skyLightLevel === "number") {
+    test(true, filter.skyLightLevel <= (anti.maxSkyLight as number));
+  }
+  if (typeof anti.canSeeSky === "boolean" && typeof filter.canSeeSky === "boolean") {
+    test(true, anti.canSeeSky === filter.canSeeSky);
+  }
+  if (anti.moonPhase !== undefined && typeof filter.moonPhase === "number") {
+    const mp =
+      typeof anti.moonPhase === "number"
+        ? (anti.moonPhase as number)
+        : Number.parseInt(String(anti.moonPhase), 10);
+    if (Number.isFinite(mp)) test(true, mp === filter.moonPhase);
+  }
+  const baseBlocks = anti.neededBaseBlocks as string[] | undefined;
+  if (baseBlocks && baseBlocks.length > 0 && filter.baseBlock) {
+    const fbase = stripHash(filter.baseBlock);
+    test(true, baseBlocks.some((b) => stripHash(b) === fbase));
+  }
+  const nearby = anti.neededNearbyBlocks as string[] | undefined;
+  if (
+    nearby &&
+    nearby.length > 0 &&
+    filter.nearbyBlocks &&
+    filter.nearbyBlocks.length > 0
+  ) {
+    const fset = new Set(filter.nearbyBlocks.map(stripHash));
+    test(true, nearby.some((b) => fset.has(stripHash(b))));
+  }
+  if (typeof anti.fluid === "string" && filter.fluid) {
+    test(true, stripHash(anti.fluid as string) === stripHash(filter.fluid));
+  }
+
+  // Count how many anti fields are *defined* (regardless of whether the
+  // filter could evaluate them). If every defined anti field could be
+  // evaluated and all matched, the spawn is rejected. Otherwise we
+  // bail out — a non-evaluable anti never rejects.
+  const defined = countDefinedAntiFields(anti);
+  if (defined === 0) return false;
+  return evaluated === defined && matched === defined;
+}
+
+function countDefinedAntiFields(anti: ConditionShape): number {
+  let n = 0;
+  if (Array.isArray(anti.biomes) && (anti.biomes as unknown[]).length > 0) n += 1;
+  if (Array.isArray(anti.structures) && (anti.structures as unknown[]).length > 0) n += 1;
+  if (Array.isArray(anti.dimensions) && (anti.dimensions as unknown[]).length > 0) n += 1;
+  if (typeof anti.minLight === "number") n += 1;
+  if (typeof anti.maxLight === "number") n += 1;
+  if (typeof anti.minSkyLight === "number") n += 1;
+  if (typeof anti.maxSkyLight === "number") n += 1;
+  if (typeof anti.canSeeSky === "boolean") n += 1;
+  if (anti.moonPhase !== undefined) n += 1;
+  if (Array.isArray(anti.neededBaseBlocks) && (anti.neededBaseBlocks as unknown[]).length > 0) n += 1;
+  if (
+    Array.isArray(anti.neededNearbyBlocks) &&
+    (anti.neededNearbyBlocks as unknown[]).length > 0
+  )
+    n += 1;
+  if (typeof anti.fluid === "string") n += 1;
+  return n;
+}
+
 export function filterSpawns<
   T extends Pick<Spawn, "biomes" | "condition" | "anticondition"> & {
     levelMin: number;
@@ -405,7 +525,7 @@ export function filterSpawns<
     // the spawn is rejected. See GitLab #1737. We mirror that semantics so
     // the lookup matches in-game behavior, including its quirks.
     const anti = (s.anticondition ?? null) as ConditionShape | null;
-    if (anti && Object.keys(anti).length > 0 && conditionMatches(anti, filter)) {
+    if (anti && Object.keys(anti).length > 0 && anticonditionRejects(anti, filter)) {
       return false;
     }
     return true;
