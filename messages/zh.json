@@ -129,7 +129,16 @@
     "except": "Except",
     "presets": "Presets",
     "ifAny": "always",
-    "evolution": "Evolution"
+    "evolution": "Evolution",
+    "bestZones": {
+      "title": "Best zones to find this Pokémon",
+      "empty": "No spawn known for this species — no recommendation.",
+      "cakeLabel": "Optimal cake",
+      "cakeEmpty": "No berry boost helps here",
+      "chanceLabel": "Per-encounter chance",
+      "baselineLabel": "Without a cake",
+      "openInSnack": "Open in snack maker"
+    }
   },
   "theme": {
     "label": "切换主题",

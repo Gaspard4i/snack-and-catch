@@ -97,6 +97,15 @@
       "baseline": "basic"
     },
     "evolution": "Evolution",
+    "bestZones": {
+      "title": "Best zones to find this Pokémon",
+      "empty": "No spawn known for this species — no recommendation.",
+      "cakeLabel": "Optimal cake",
+      "cakeEmpty": "No berry boost helps here",
+      "chanceLabel": "Per-encounter chance",
+      "baselineLabel": "Without a cake",
+      "openInSnack": "Open in snack maker"
+    },
     "spawnsCount": "Spawns ({count})",
     "noSpawn": "No natural spawn documented for this species.",
     "captureRate": "Capture rate {value}",

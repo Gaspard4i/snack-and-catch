@@ -27,7 +27,10 @@ import {
   listBerries,
   listCobblemonSpawnsForSpecies,
   listFormsOfBase,
+  listSpawnsWithSpecies,
 } from "@/lib/db/queries";
+import { bestZonesForSpecies } from "@/lib/recommend/best-zones";
+import { BestZonesCards } from "@/components/BestZonesCards";
 import { SourceBadge } from "@/components/SourceBadge";
 import { TypePair } from "@/components/TypeBadge";
 import { VariantBadge } from "@/components/VariantBadge";
@@ -165,18 +168,29 @@ async function SpeciesDetail({ params }: { params: Promise<{ slug: string }> }) 
   const species = await getSpeciesBySlug(slug);
   if (!species) notFound();
 
-  const [spawns, sources, baits, berries, seasonings, wiki, neighbors, forms, t] =
-    await Promise.all([
-      listCobblemonSpawnsForSpecies(species.id),
-      getSourcesFor("species", species.id),
-      listBaitEffects(),
-      listBerries(),
-      listAllSeasonings(),
-      getWikiSummary(species.id),
-      getSpeciesNeighbors(slug),
-      listFormsOfBase(slug),
-      getTranslations("pokemon"),
-    ]);
+  const [
+    spawns,
+    sources,
+    baits,
+    berries,
+    seasonings,
+    wiki,
+    neighbors,
+    forms,
+    worldSpawns,
+    t,
+  ] = await Promise.all([
+    listCobblemonSpawnsForSpecies(species.id),
+    getSourcesFor("species", species.id),
+    listBaitEffects(),
+    listBerries(),
+    listAllSeasonings(),
+    getWikiSummary(species.id),
+    getSpeciesNeighbors(slug),
+    listFormsOfBase(slug),
+    listSpawnsWithSpecies(15000),
+    getTranslations("pokemon"),
+  ]);
 
   const primarySource = sources[0];
 
@@ -239,6 +253,22 @@ async function SpeciesDetail({ params }: { params: Promise<{ slug: string }> }) 
     },
     { limit: 24 },
   );
+
+  // Best zones to find this Pokémon. Each zone gets a greedy-optimised
+  // berry cake; only berries whose effects can move the target's odds
+  // are considered (typing match / egg group / rarity boost) — keeps
+  // the search tractable per page load.
+  const berryBaits = berries.map((b) => ({
+    slug: b.slug,
+    effects: (baitByItem.get(b.itemId) ?? []) as Array<Record<string, unknown>>,
+  }));
+  const bestZones = bestZonesForSpecies({
+    speciesId: species.id,
+    spawns: worldSpawns,
+    berries: berryBaits,
+  });
+  const berryItemBySlug = new Map<string, string>();
+  for (const b of berries) berryItemBySlug.set(b.slug, b.itemId);
 
   return (
     <>
@@ -458,6 +488,20 @@ async function SpeciesDetail({ params }: { params: Promise<{ slug: string }> }) 
           />
         </section>
       )}
+
+      <BestZonesCards
+        zones={bestZones}
+        berryItemBySlug={berryItemBySlug}
+        labels={{
+          title: t("bestZones.title"),
+          empty: t("bestZones.empty"),
+          cakeLabel: t("bestZones.cakeLabel"),
+          cakeEmpty: t("bestZones.cakeEmpty"),
+          chanceLabel: t("bestZones.chanceLabel"),
+          baselineLabel: t("bestZones.baselineLabel"),
+          openInSnack: t("bestZones.openInSnack"),
+        }}
+      />
 
       <section className="mt-10">
         <h2 className="text-sm font-medium uppercase tracking-wide text-muted">

@@ -96,6 +96,15 @@
       "level_boost": "niveau",
       "baseline": "basique"
     },
+    "bestZones": {
+      "title": "Meilleures zones pour trouver ce Pokémon",
+      "empty": "Aucun spawn connu pour cette espèce — pas de recommandation.",
+      "cakeLabel": "Gâteau optimal",
+      "cakeEmpty": "Aucune baie ne booste ici",
+      "chanceLabel": "Chance par rencontre",
+      "baselineLabel": "Sans gâteau",
+      "openInSnack": "Ouvrir dans le snack maker"
+    },
     "spawnsCount": "Spawns ({count})",
     "noSpawn": "Aucun spawn naturel documenté pour cette espèce.",
     "captureRate": "Capture rate {value}",
