@@ -635,15 +635,59 @@ function extractScalars(
   };
 }
 
+/**
+ * Keep a spawn whose condition references AT LEAST ONE allowed-namespace
+ * value (or no biome/dim/structure constraint at all). Cobblemon ships
+ * spawns that list both vanilla biomes and modded ones (Aether, Bumblezone,
+ * …) on the same entry — rejecting the whole spawn if a foreign biome
+ * appears was throwing out 1000+ legitimate vanilla spawns (Beedrill,
+ * Raichu-Alolan, every Aether-friendly mon …). The hostile namespace
+ * tokens are filtered later at persistence time.
+ */
 function spawnReferencesAllowedNamespaces(entry: SpawnEntry): boolean {
   const cond = entry.condition;
   const dims = (cond?.dimensions ?? []) as string[];
   const biomes = (cond?.biomes ?? []) as string[];
   const structures = (cond?.structures ?? []) as string[];
-  for (const v of [...dims, ...biomes, ...structures]) {
-    if (!isAllowedNamespace(v)) return false;
+  const tokens = [...dims, ...biomes, ...structures];
+  if (tokens.length === 0) return true;
+  // Accept the spawn if any constraint token belongs to a namespace we
+  // ingest. Foreign-only spawns (e.g. Bumblezone-only) are still skipped.
+  return tokens.some((v) => isAllowedNamespace(v));
+}
+
+/**
+ * Strip non-allowed-namespace tokens from a constraint list before we
+ * persist the spawn. We keep the spawn meaningful for the namespaces we
+ * support without leaking modded biomes our world graph can't resolve.
+ */
+function filterAllowedTokens(tokens: string[]): string[] {
+  return tokens.filter((v) => isAllowedNamespace(v));
+}
+
+/**
+ * Returns a copy of the spawn condition (or anticondition) where every
+ * `biomes`/`structures`/`dimensions` array is restricted to the
+ * namespaces we ingest. The columnar fields are already filtered upstream;
+ * we mirror the filtering in the JSONB shadow so downstream matchers
+ * (snack filter, dimension gate) can't see foreign tokens that wouldn't
+ * have a counterpart in the world graph.
+ */
+function sanitiseCondition(
+  cond: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  if (!cond) return cond ?? null;
+  const out: Record<string, unknown> = { ...cond };
+  if (Array.isArray(cond.biomes)) {
+    out.biomes = filterAllowedTokens(cond.biomes as string[]);
   }
-  return true;
+  if (Array.isArray(cond.structures)) {
+    out.structures = filterAllowedTokens(cond.structures as string[]);
+  }
+  if (Array.isArray(cond.dimensions)) {
+    out.dimensions = filterAllowedTokens(cond.dimensions as string[]);
+  }
+  return out;
 }
 
 async function ingestSpawnsFromDir(opts: {
@@ -696,20 +740,28 @@ async function ingestSpawnsFromDir(opts: {
         const positionType =
           entry.context ?? entry.spawnablePositionType ?? null;
         const scalars = extractScalars(entry.condition, positionType);
-        const biomesRaw = (entry.condition?.biomes ?? []) as string[];
+        // Filter out modded-namespace biomes we don't model. The spawn
+        // is still meaningful for the namespaces we keep — the foreign
+        // biomes were the reason a Beedrill listing both `#cobblemon:is_forest`
+        // and `aether:skyroot_forest` was being rejected wholesale.
+        const biomesRaw = filterAllowedTokens(
+          (entry.condition?.biomes ?? []) as string[],
+        );
         const { tags, dimensions: dimsFromBiomes } = resolveBiomes(
           biomesRaw,
           opts.biomeIndex,
         );
-        const explicitDims =
-          (entry.condition?.dimensions as string[] | undefined) ?? [];
+        const explicitDims = filterAllowedTokens(
+          (entry.condition?.dimensions as string[] | undefined) ?? [],
+        );
         const conditionDimensions = uniq([...explicitDims, ...dimsFromBiomes]);
         const conditionBiomeTags = tags;
-        const conditionStructures = (entry.condition?.structures ?? []) as string[];
+        const conditionStructures = filterAllowedTokens(
+          (entry.condition?.structures ?? []) as string[],
+        );
 
         // Auto-discover structures used by spawns.
         for (const s of conditionStructures) {
-          if (!isAllowedNamespace(s)) continue;
           structures.add(s);
           for (const tagId of conditionBiomeTags) {
             biomeStructureLinks.add(`${tagId}::${s}`);
@@ -755,8 +807,12 @@ async function ingestSpawnsFromDir(opts: {
             minY: scalars.minY,
             maxY: scalars.maxY,
             biomes: biomesRaw,
-            condition: entry.condition ?? null,
-            anticondition: entry.anticondition ?? null,
+            // Persist a sanitised condition JSONB so downstream matchers
+            // (snack filter, dimension gate) can't see modded biomes we
+            // dropped from the columnar fields above. Otherwise the JSONB
+            // shadow would re-introduce the foreign tokens via spawn.condition.
+            condition: sanitiseCondition(entry.condition),
+            anticondition: sanitiseCondition(entry.anticondition),
             weightMultipliers,
             compositeCondition: entry.compositeCondition ?? null,
             presets: entry.presets,
