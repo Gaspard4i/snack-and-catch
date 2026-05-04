@@ -1656,24 +1656,22 @@ export function CampfirePot({ mode = "snack" }: { mode?: PotMode } = {}) {
                 <option value="name_desc">{t("sortNameDesc")}</option>
               </select>
             </label>
-            {hasShinyBoost && (
-              <button
-                onClick={() => setShowShiny((v) => !v)}
-                aria-pressed={showShiny}
-                className={`text-xs inline-flex items-center gap-1 px-2 py-1 rounded-md border transition-colors ${
-                  showShiny
-                    ? "border-amber-400 bg-amber-400/10 text-amber-600 dark:text-amber-400"
-                    : "border-border text-muted hover:text-foreground"
-                }`}
-                title={`Shiny rate: ${(shinyMultiplier * 100).toFixed(4)}% per encounter`}
-              >
-                <Star
-                  className={`h-3.5 w-3.5 ${showShiny ? "text-amber-500 fill-amber-500" : ""}`}
-                  aria-hidden
-                />
-                <span className="text-[10px] uppercase tracking-wide">{t("shiny")}</span>
-              </button>
-            )}
+            <button
+              onClick={() => setShowShiny((v) => !v)}
+              aria-pressed={showShiny}
+              className={`text-xs inline-flex items-center gap-1 px-2 py-1 rounded-md border transition-colors ${
+                showShiny
+                  ? "border-amber-400 bg-amber-400/10 text-amber-600 dark:text-amber-400"
+                  : "border-border text-muted hover:text-foreground"
+              }`}
+              title={`Shiny rate: ${(shinyMultiplier * 100).toFixed(4)}% per encounter`}
+            >
+              <Star
+                className={`h-3.5 w-3.5 ${showShiny ? "text-amber-500 fill-amber-500" : ""}`}
+                aria-hidden
+              />
+              <span className="text-[10px] uppercase tracking-wide">{t("shiny")}</span>
+            </button>
             {(attQuery || attTypes.length > 0 || attBuckets.length > 0) && (
               <button
                 onClick={() => {
@@ -1713,7 +1711,7 @@ export function CampfirePot({ mode = "snack" }: { mode?: PotMode } = {}) {
                       name={p.name}
                       variantLabel={p.variantLabel}
                       size={64}
-                      shiny={showShiny && hasShinyBoost}
+                      shiny={showShiny}
                     />
                   <div className="min-w-0 flex-1 self-stretch flex flex-col">
                     <div className="flex items-center gap-1">
@@ -1721,17 +1719,17 @@ export function CampfirePot({ mode = "snack" }: { mode?: PotMode } = {}) {
                         #{String(p.dexNo).padStart(4, "0")}
                       </span>
                       {(() => {
-                        const prob = showShiny && hasShinyBoost
+                        const prob = showShiny
                           ? p.probability * shinyMultiplier
                           : p.probability;
                         const digits = prob >= 0.01 ? 2 : prob >= 0.0001 ? 4 : 6;
                         return (
                           <span
                             className={`ml-auto text-xs font-mono font-medium ${
-                              showShiny && hasShinyBoost ? "text-amber-600 dark:text-amber-400" : "text-accent"
+                              showShiny ? "text-amber-600 dark:text-amber-400" : "text-accent"
                             }`}
                             title={
-                              showShiny && hasShinyBoost
+                              showShiny
                                 ? `P(spawn) = ${(p.probability * 100).toFixed(3)}% × P(shiny) = ${(shinyMultiplier * 100).toFixed(4)}%`
                                 : `base weight ${p.weight} → adjusted ${p.adjustedWeight.toFixed(1)}`
                             }
