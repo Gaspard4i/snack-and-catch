@@ -499,6 +499,7 @@ async function SpeciesDetail({ params }: { params: Promise<{ slug: string }> }) 
           cakeEmpty: t("bestZones.cakeEmpty"),
           chanceLabel: t("bestZones.chanceLabel"),
           baselineLabel: t("bestZones.baselineLabel"),
+          biomesLabel: t("bestZones.biomesLabel"),
           openInSnack: t("bestZones.openInSnack"),
         }}
       />

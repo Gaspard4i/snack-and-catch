@@ -103,6 +103,7 @@
       "cakeEmpty": "Aucune baie ne booste ici",
       "chanceLabel": "Chance par rencontre",
       "baselineLabel": "Sans gâteau",
+      "biomesLabel": "Biomes de cette zone",
       "openInSnack": "Ouvrir dans le snack maker"
     },
     "spawnsCount": "Spawns ({count})",

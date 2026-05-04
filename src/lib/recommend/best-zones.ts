@@ -22,6 +22,7 @@ import {
   type SnackSpawnCandidate,
 } from "./snack-spawn";
 import type { SpawnWithSpecies } from "../db/queries";
+import { BIOME_SECTIONS } from "./biome-sections";
 
 const MAX_SLOTS = 3;
 const TOP_ZONES = 3;
@@ -32,11 +33,23 @@ export type ZoneRecommendation = {
   /** Vanilla dimension key, e.g. `minecraft:overworld`. */
   dimension: string;
   /**
-   * Most-specific biome tag the spawn declares for this zone, e.g.
-   * `#cobblemon:nether/is_basalt` or `minecraft:plains`. May be `null`
-   * if the spawn carries no biome constraint at all.
+   * Cobblemon "zone" name — the curated BIOME_SECTIONS title (e.g.
+   * "Forests & woods", "Nether", "Ocean & aquatic"). Falls back to a
+   * derived label when the spawn matches no curated section.
    */
-  biome: string | null;
+  zoneTitle: string;
+  /**
+   * Biome tags / vanilla biomes that belong to this zone for THIS
+   * species, surfaced so the UI can show "where exactly". Up to ~6
+   * entries; preserves the order from the spawn data.
+   */
+  biomes: string[];
+  /**
+   * Single most representative biome tag, used to pre-fill the snack
+   * maker via deep-link. Picked deterministically (first biome the
+   * spawn declares).
+   */
+  primaryBiome: string | null;
   /** Probability of attracting the target species with the cake below. */
   probability: number;
   /** Probability of attracting the species in this zone with NO bait. */
@@ -46,6 +59,38 @@ export type ZoneRecommendation = {
   /** How many spawns of the target species fall in this zone. */
   spawnCount: number;
 };
+
+/**
+ * Build a `tag → section title` lookup once at module load. Tags are
+ * normalised to the un-hashed form so the lookup matches both `#cobblemon:is_forest`
+ * and `cobblemon:is_forest`.
+ */
+const BIOME_TAG_TO_SECTION = (() => {
+  const map = new Map<string, string>();
+  for (const section of BIOME_SECTIONS) {
+    for (const tag of section.tags) {
+      map.set(tag.replace(/^#/, ""), section.title);
+    }
+  }
+  return map;
+})();
+
+function sectionTitleFor(biome: string | null): string {
+  if (!biome) return "Anywhere";
+  const stripped = biome.replace(/^#/, "");
+  const direct = BIOME_TAG_TO_SECTION.get(stripped);
+  if (direct) return direct;
+  // Vanilla biome (`minecraft:plains`, `minecraft:nether_wastes`) — derive a
+  // human-readable title from the path.
+  if (stripped.startsWith("minecraft:")) {
+    const id = stripped.slice("minecraft:".length);
+    if (/^the_nether$|^nether/.test(id)) return "Nether";
+    if (/the_end|end_/.test(id)) return "End";
+    return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  // Modded namespace we ingested but didn't curate — show the leaf as title.
+  return stripped.split(":").pop()!.replace(/_/g, " ");
+}
 
 type BerryBait = {
   slug: string;
@@ -182,20 +227,39 @@ export function bestZonesForSpecies(opts: {
   const ownSpawns = opts.spawns.filter((s) => speciesKey(s) === opts.speciesId);
   if (ownSpawns.length === 0) return [];
 
-  // Group own spawns by zone signature (dim + biome key). Multiple own
-  // spawns in the same zone are merged; we only need the union for the
-  // pool restriction step.
+  // Group own spawns by Cobblemon zone signature (dimension + curated
+  // section title). A spawn that lists six biomes which all belong to
+  // "Forests & woods" collapses into a single zone — the player only
+  // needs to know "go to a forest", not memorise every tag.
   const zoneMap = new Map<
     string,
-    { samples: SpawnWithSpecies[]; dim: string; biome: string | null }
+    {
+      samples: SpawnWithSpecies[];
+      dim: string;
+      title: string;
+      biomes: Set<string>;
+    }
   >();
   for (const s of ownSpawns) {
     const dim = spawnDimension(s);
-    const biome = spawnBiomeKey(s);
-    const key = `${dim}|${biome ?? "*"}`;
+    // A spawn often lists multiple biomes; we group by the section
+    // title of its FIRST (most-specific) tag, but record every biome
+    // the spawn declared so the UI can show the full list.
+    const primary = spawnBiomeKey(s);
+    const title = sectionTitleFor(primary);
+    const key = `${dim}|${title}`;
     const prev = zoneMap.get(key);
-    if (prev) prev.samples.push(s);
-    else zoneMap.set(key, { samples: [s], dim, biome });
+    if (prev) {
+      prev.samples.push(s);
+      for (const b of s.biomes ?? []) prev.biomes.add(b);
+    } else {
+      zoneMap.set(key, {
+        samples: [s],
+        dim,
+        title,
+        biomes: new Set(s.biomes ?? []),
+      });
+    }
   }
 
   const recos: ZoneRecommendation[] = [];
@@ -220,10 +284,13 @@ export function bestZonesForSpecies(opts: {
       candidateBerries,
     );
 
+    const biomesList = [...zone.biomes];
     recos.push({
       key,
       dimension: zone.dim,
-      biome: zone.biome,
+      zoneTitle: zone.title,
+      biomes: biomesList,
+      primaryBiome: spawnBiomeKey(zone.samples[0]),
       probability,
       baselineProbability: baseline,
       berrySlugs,

@@ -118,13 +118,6 @@ export default async function BerryPage({ params }: { params: Promise<Params> })
         <Link href="/seasonings" className="hover:text-foreground">
           ← Seasoning Dex
         </Link>
-        <span>·</span>
-        <Link
-          href={`/debug/berry/${berry.slug}`}
-          className="hover:text-foreground"
-        >
-          debug view →
-        </Link>
       </nav>
 
       <header className="flex items-start gap-4 mb-6">

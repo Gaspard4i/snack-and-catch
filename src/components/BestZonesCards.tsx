@@ -10,8 +10,7 @@ const DIMENSION_LABELS: Record<string, string> = {
   "aether:the_aether": "Aether",
 };
 
-function prettyBiome(biome: string | null): string | null {
-  if (!biome) return null;
+function prettyBiome(biome: string): string {
   return biome
     .replace(/^#/, "")
     .replace(/^[a-z0-9_]+:/, "")
@@ -21,15 +20,14 @@ function prettyBiome(biome: string | null): string | null {
 }
 
 /**
- * `/snack` deep-link that pre-selects the zone (dimension + biome) and
- * the recommended cake (berry slugs as `bait` query params).
+ * `/snack` deep-link that pre-selects the zone (dimension + primary
+ * biome) and the recommended cake (berry slugs as `seasoning` query
+ * params).
  */
 function snackHref(zone: ZoneRecommendation): string {
   const u = new URLSearchParams();
   u.set("dimension", zone.dimension);
-  // We strip the leading `#` so the URL stays clean (`%23` ugliness is
-  // avoided); the maker re-adds it when the namespace is `cobblemon:`.
-  if (zone.biome) u.set("biome", zone.biome.replace(/^#/, ""));
+  if (zone.primaryBiome) u.set("biome", zone.primaryBiome.replace(/^#/, ""));
   for (const slug of zone.berrySlugs) u.append("seasoning", slug);
   return `/snack?${u.toString()}`;
 }
@@ -55,6 +53,7 @@ export function BestZonesCards({
     cakeEmpty: string;
     chanceLabel: string;
     baselineLabel: string;
+    biomesLabel: string;
     openInSnack: string;
   };
 }) {
@@ -77,7 +76,6 @@ export function BestZonesCards({
       <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {zones.map((zone) => {
           const dim = DIMENSION_LABELS[zone.dimension] ?? zone.dimension;
-          const biome = prettyBiome(zone.biome);
           return (
             <li key={zone.key}>
               <Link
@@ -86,13 +84,34 @@ export function BestZonesCards({
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="text-xs uppercase tracking-wide text-muted">{dim}</div>
+                    <div className="text-xs uppercase tracking-wide text-muted">
+                      {dim}
+                    </div>
                     <div className="font-semibold capitalize truncate">
-                      {biome ?? labels.cakeEmpty}
+                      {zone.zoneTitle}
                     </div>
                   </div>
                   <ChevronRight className="size-4 text-muted shrink-0 group-hover:text-accent transition-colors" />
                 </div>
+
+                {zone.biomes.length > 0 && (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted">
+                      {labels.biomesLabel}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {zone.biomes.slice(0, 8).map((b) => (
+                        <span
+                          key={b}
+                          className="inline-block rounded border border-border bg-subtle/60 px-1.5 py-0.5 text-[10px] capitalize"
+                          title={b}
+                        >
+                          {prettyBiome(b)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <div className="text-[10px] uppercase tracking-wide text-muted">

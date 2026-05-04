@@ -137,7 +137,8 @@
       "cakeEmpty": "No berry boost helps here",
       "chanceLabel": "Per-encounter chance",
       "baselineLabel": "Without a cake",
-      "openInSnack": "Open in snack maker"
+      "openInSnack": "Open in snack maker",
+      "biomesLabel": "Biomes in this zone"
     }
   },
   "theme": {

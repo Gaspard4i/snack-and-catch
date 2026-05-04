@@ -102,7 +102,10 @@ describe("bestZonesForSpecies", () => {
     const recos = bestZonesForSpecies({ speciesId, spawns, berries: [] });
     expect(recos).toHaveLength(2);
     // Best zone should be the empty Nether — less competition.
-    expect(recos[0].biome).toBe("#cobblemon:nether/is_basalt");
+    // Best zone is the Nether basalt — its zone title is the curated
+    // "Nether" section.
+    expect(recos[0].zoneTitle).toBe("Nether");
+    expect(recos[0].primaryBiome).toBe("#cobblemon:nether/is_basalt");
     expect(recos[0].probability).toBeGreaterThan(recos[1].probability);
   });
 

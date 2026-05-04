@@ -104,6 +104,7 @@
       "cakeEmpty": "No berry boost helps here",
       "chanceLabel": "Per-encounter chance",
       "baselineLabel": "Without a cake",
+      "biomesLabel": "Biomes in this zone",
       "openInSnack": "Open in snack maker"
     },
     "spawnsCount": "Spawns ({count})",
