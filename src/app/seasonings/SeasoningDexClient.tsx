@@ -248,44 +248,61 @@ export function SeasoningDexClient({ rows }: Props) {
 
 function SeasoningCard({ row }: { row: SeasoningRow }) {
   const tint = row.dominantFlavour ? FLAVOUR_TINT[row.dominantFlavour] : null;
+  // Only berries have a dedicated detail route (`/berry/[slug]`).
+  // Vanilla seasonings (golden_apple, sweet_berries, glow_berries…) have
+  // no page yet — render a static card instead of a 404 link.
+  const cardClasses =
+    "group flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-3 transition-colors";
+  const inner = (
+    <>
+      <div
+        className="relative w-12 h-12 rounded-md flex items-center justify-center"
+        style={{ background: tint ? `${tint}33` : undefined }}
+      >
+        <Image
+          src={row.spriteUrl}
+          alt={row.name}
+          width={32}
+          height={32}
+          style={{ imageRendering: "pixelated" }}
+          unoptimized
+        />
+      </div>
+      <span className="text-xs font-medium capitalize text-center leading-tight group-hover:text-accent">
+        {row.name}
+      </span>
+      <div className="flex items-center gap-1 flex-wrap justify-center">
+        {row.dominantFlavour && (
+          <span
+            className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded text-stone-900"
+            style={{ background: tint ?? "#bbb" }}
+          >
+            {row.dominantFlavour.toLowerCase()}
+          </span>
+        )}
+        {row.hasBaitEffects && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-subtle text-muted">
+            bait
+          </span>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <li>
-      <Link
-        href={row.kind === "berry" ? `/berry/${row.slug}` : `/seasonings/${row.slug}`}
-        className="group flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-3 hover:border-accent transition-colors"
-      >
-        <div
-          className="relative w-12 h-12 rounded-md flex items-center justify-center"
-          style={{ background: tint ? `${tint}33` : undefined }}
+      {row.kind === "berry" ? (
+        <Link
+          href={`/berry/${row.slug}`}
+          className={`${cardClasses} hover:border-accent`}
         >
-          <Image
-            src={row.spriteUrl}
-            alt={row.name}
-            width={32}
-            height={32}
-            style={{ imageRendering: "pixelated" }}
-            unoptimized
-          />
+          {inner}
+        </Link>
+      ) : (
+        <div className={cardClasses} title={row.name}>
+          {inner}
         </div>
-        <span className="text-xs font-medium capitalize text-center leading-tight group-hover:text-accent">
-          {row.name}
-        </span>
-        <div className="flex items-center gap-1 flex-wrap justify-center">
-          {row.dominantFlavour && (
-            <span
-              className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded text-stone-900"
-              style={{ background: tint ?? "#bbb" }}
-            >
-              {row.dominantFlavour.toLowerCase()}
-            </span>
-          )}
-          {row.hasBaitEffects && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-subtle text-muted">
-              bait
-            </span>
-          )}
-        </div>
-      </Link>
+      )}
     </li>
   );
 }
