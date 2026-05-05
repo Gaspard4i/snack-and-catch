@@ -375,5 +375,35 @@
     "title": "Fabricante de Poké Bait",
     "intro": "Añade bait seasonings a la olla para preparar un Poké Bait. Engánchalo en una Poké Rod y sesga las apariciones acuáticas igual que un Snack lo hace con las terrestres.",
     "navLabel": "Bait"
+  },
+  "cookies": {
+    "dialogLabel": "Consentimiento de cookies",
+    "body": "Usamos cookies de análisis (páginas vistas, clics, tiempo, grabación anónima de sesiones vía PostHog) para mejorar la app. No compartimos datos con anunciantes. Puedes rechazar — no cambia el uso del sitio.",
+    "accept": "Aceptar",
+    "refuse": "Rechazar"
+  },
+  "errors": {
+    "backHome": "Volver al inicio",
+    "retry": "Reintentar",
+    "code404": {
+      "title": "Página no encontrada",
+      "body": "Esta página no existe o se ha movido."
+    },
+    "code401": {
+      "title": "Autenticación requerida",
+      "body": "Inicia sesión para acceder a esta página."
+    },
+    "code403": {
+      "title": "Acceso denegado",
+      "body": "No tienes permiso aquí."
+    },
+    "code500": {
+      "title": "Algo se rompió por nuestro lado",
+      "body": "Ocurrió un error inesperado. Recarga o vuelve más tarde."
+    },
+    "codeOffline": {
+      "title": "Sin conexión",
+      "body": "Estás desconectado. Vuelve a conectarte e inténtalo de nuevo."
+    }
   }
 }

@@ -375,5 +375,35 @@
     "title": "Atelier Poké Bait",
     "intro": "Place des bait seasonings dans le pot de cuisson pour préparer un Poké Bait. Accroche-le sur une Poké Rod et il influence les apparitions aquatiques comme un Snack influence celles au sol. type, egg group, nature, IVs, shiny, talent caché, palier de rareté.",
     "navLabel": "Bait"
+  },
+  "cookies": {
+    "dialogLabel": "Consentement cookies",
+    "body": "On utilise des cookies d'analyse (pages vues, clics, durée, enregistrement de session anonyme via PostHog) pour améliorer l'app. Aucune donnée n'est partagée avec des annonceurs. Tu peux refuser, ça ne change rien à l'usage du site.",
+    "accept": "Accepter",
+    "refuse": "Refuser"
+  },
+  "errors": {
+    "backHome": "Retour à l'accueil",
+    "retry": "Réessayer",
+    "code404": {
+      "title": "Page introuvable",
+      "body": "Cette page n'existe pas ou a bougé. Un Pokémon l'a peut-être emportée."
+    },
+    "code401": {
+      "title": "Authentification requise",
+      "body": "Connecte-toi pour accéder à cette page."
+    },
+    "code403": {
+      "title": "Accès refusé",
+      "body": "T'es pas autorisé ici. Mauvaise carte de dresseur."
+    },
+    "code500": {
+      "title": "Quelque chose a cassé chez nous",
+      "body": "Une erreur inattendue. Recharge la page ou reviens dans un instant."
+    },
+    "codeOffline": {
+      "title": "Pas de connexion",
+      "body": "Tu es hors-ligne. Reconnecte-toi et réessaie."
+    }
   }
 }

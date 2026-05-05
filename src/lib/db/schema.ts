@@ -1,6 +1,7 @@
 import {
   pgTable,
   serial,
+  bigserial,
   integer,
   text,
   real,
@@ -374,6 +375,28 @@ export const siteRatings = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("site_ratings_created_idx").on(t.createdAt)],
+);
+
+export const analyticsEvents = pgTable(
+  "analytics_events",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    type: text("type").notNull(),
+    route: text("route"),
+    sessionId: text("session_id"),
+    ipHash: text("ip_hash"),
+    locale: text("locale"),
+    referrer: text("referrer"),
+    userAgent: text("user_agent"),
+    props: jsonb("props").$type<Record<string, unknown>>().notNull().default({}),
+    durationMs: integer("duration_ms"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("analytics_events_created_idx").on(t.createdAt),
+    index("analytics_events_type_idx").on(t.type),
+    index("analytics_events_route_idx").on(t.route),
+  ],
 );
 
 export type Species = typeof species.$inferSelect;

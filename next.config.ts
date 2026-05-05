@@ -1,10 +1,16 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { withBotId } from "botid/next/config";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  experimental: {
+    // Enables unauthorized()/forbidden() from "next/navigation" to render
+    // app/unauthorized.tsx and app/forbidden.tsx.
+    authInterrupts: true,
+  },
   images: {
     // Variant sprites (mega/gmax/regional/cosmetic) are hot-linked
     // from pokemondb. We pass them through the optimizer so the page
@@ -16,4 +22,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default withNextIntl(withBotId(nextConfig));

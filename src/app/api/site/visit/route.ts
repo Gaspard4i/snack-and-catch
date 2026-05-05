@@ -1,5 +1,8 @@
+import { NextRequest } from "next/server";
 import { sql } from "drizzle-orm";
+import { checkBotId } from "botid/server";
 import { db, isDbMissing, schema } from "@/lib/db/client";
+import { looksLikeBot } from "@/lib/security/bot-filter";
 
 /**
  * Atomic increment of the site-wide visit counter. Called once per tab
@@ -7,7 +10,18 @@ import { db, isDbMissing, schema } from "@/lib/db/client";
  * or the table is missing, we swallow the error — the counter is not
  * critical to the user experience.
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (looksLikeBot(req.headers.get("user-agent"))) {
+    return Response.json({ ok: true });
+  }
+  try {
+    const verification = await checkBotId();
+    if (verification.isBot) {
+      return Response.json({ ok: true });
+    }
+  } catch {
+    /* BotID unavailable — fall through */
+  }
   if (isDbMissing()) return Response.json({ ok: true });
   try {
     await db

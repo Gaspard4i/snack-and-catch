@@ -14,6 +14,9 @@ import { SavedRecipesIcon } from "@/components/SavedRecipesIcon";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { FloatingFeedback } from "@/components/FloatingFeedback";
 import { SatisfactionModal } from "@/components/SatisfactionModal";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
+import { CookieBanner } from "@/components/CookieBanner";
+import { PostHogLoader } from "@/components/PostHogLoader";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -113,6 +116,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               />
               <FloatingFeedback />
               <SatisfactionModal />
+              <Suspense fallback={null}>
+                <AnalyticsTracker />
+              </Suspense>
+              <PostHogLoader />
+              <CookieBanner />
             </IntlShell>
           </Suspense>
         </ThemeProvider>

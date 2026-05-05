@@ -375,5 +375,35 @@
     "title": "Poké Bait 工坊",
     "intro": "把 bait seasonings 放入烹饪锅以制作 Poké Bait。将其挂在 Poké Rod 上,它能像 Snack 影响地面生成那样,影响水中生成。",
     "navLabel": "Bait"
+  },
+  "cookies": {
+    "dialogLabel": "Cookie 同意",
+    "body": "我们使用分析 Cookie（页面浏览、点击、停留时间、通过 PostHog 进行匿名会话记录）来改进应用。不与广告商共享数据。您可以拒绝 — 不影响网站使用。",
+    "accept": "接受",
+    "refuse": "拒绝"
+  },
+  "errors": {
+    "backHome": "返回首页",
+    "retry": "重试",
+    "code404": {
+      "title": "页面未找到",
+      "body": "此页面不存在或已被移动。"
+    },
+    "code401": {
+      "title": "需要认证",
+      "body": "需要登录才能访问此页面。"
+    },
+    "code403": {
+      "title": "访问被拒绝",
+      "body": "您没有权限访问此处。"
+    },
+    "code500": {
+      "title": "我们这边出了问题",
+      "body": "发生意外错误。请重新加载或稍后再试。"
+    },
+    "codeOffline": {
+      "title": "无连接",
+      "body": "您处于离线状态。请重新连接后再试。"
+    }
   }
 }

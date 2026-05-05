@@ -375,5 +375,35 @@
     "title": "Poké Bait maker",
     "intro": "Drop bait seasonings into the cooking pot to brew a Poké Bait. Hang it on a Poké Rod and water spawns are biased the same way a Snack biases land spawns. type, egg group, nature, IVs, shiny, hidden ability, rarity bucket.",
     "navLabel": "Bait"
+  },
+  "cookies": {
+    "dialogLabel": "Cookie consent",
+    "body": "We use analytics cookies (page views, clicks, time spent, anonymous session replay via PostHog) to improve the app. No data is shared with advertisers. You can refuse — it doesn't change how the site works.",
+    "accept": "Accept",
+    "refuse": "Refuse"
+  },
+  "errors": {
+    "backHome": "Back to home",
+    "retry": "Try again",
+    "code404": {
+      "title": "Page not found",
+      "body": "This page doesn't exist or has moved. Maybe a Pokémon dragged it off."
+    },
+    "code401": {
+      "title": "Authentication required",
+      "body": "You need to sign in to access this page."
+    },
+    "code403": {
+      "title": "Access denied",
+      "body": "You're not allowed here. Wrong trainer card."
+    },
+    "code500": {
+      "title": "Something broke on our side",
+      "body": "An unexpected error occurred. Reload the page or come back in a moment."
+    },
+    "codeOffline": {
+      "title": "No connection",
+      "body": "You're offline. Reconnect and try again."
+    }
   }
 }

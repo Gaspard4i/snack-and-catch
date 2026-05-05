@@ -375,5 +375,35 @@
     "title": "Poké-Bait-Werkstatt",
     "intro": "Wirf Bait-Seasonings in den Kochtopf, um einen Poké Bait zu brauen. An einer Poké Rod befestigt, beeinflusst er Wasserspawns so wie ein Snack die Landspawns.",
     "navLabel": "Bait"
+  },
+  "cookies": {
+    "dialogLabel": "Cookie-Einwilligung",
+    "body": "Wir verwenden Analyse-Cookies (Seitenaufrufe, Klicks, Verweildauer, anonyme Session-Aufzeichnung über PostHog), um die App zu verbessern. Keine Daten werden an Werbetreibende weitergegeben. Du kannst ablehnen — die Nutzung der Seite bleibt unverändert.",
+    "accept": "Akzeptieren",
+    "refuse": "Ablehnen"
+  },
+  "errors": {
+    "backHome": "Zurück zur Startseite",
+    "retry": "Erneut versuchen",
+    "code404": {
+      "title": "Seite nicht gefunden",
+      "body": "Diese Seite existiert nicht oder wurde verschoben."
+    },
+    "code401": {
+      "title": "Anmeldung erforderlich",
+      "body": "Du musst dich anmelden, um diese Seite zu sehen."
+    },
+    "code403": {
+      "title": "Zugriff verweigert",
+      "body": "Du hast keinen Zugang hierher."
+    },
+    "code500": {
+      "title": "Bei uns ist etwas schiefgelaufen",
+      "body": "Ein unerwarteter Fehler. Lade die Seite neu oder versuche es später."
+    },
+    "codeOffline": {
+      "title": "Keine Verbindung",
+      "body": "Du bist offline. Verbinde dich neu und versuche es erneut."
+    }
   }
 }

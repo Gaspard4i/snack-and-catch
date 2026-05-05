@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { createHash } from "node:crypto";
+import { checkBotId } from "botid/server";
 import { db, isDbMissing, schema } from "@/lib/db/client";
+import { looksLikeBot } from "@/lib/security/bot-filter";
 
 type Body = {
   stars?: number;
@@ -14,6 +16,18 @@ type Body = {
  * so the client's thank-you flow works; the rating is just dropped.
  */
 export async function POST(req: NextRequest) {
+  if (looksLikeBot(req.headers.get("user-agent"))) {
+    return Response.json({ ok: true });
+  }
+  try {
+    const verification = await checkBotId();
+    if (verification.isBot) {
+      return Response.json({ ok: true });
+    }
+  } catch {
+    /* BotID unavailable — fall through */
+  }
+
   let body: Body = {};
   try {
     body = (await req.json()) as Body;

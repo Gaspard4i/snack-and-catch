@@ -375,5 +375,35 @@
     "title": "Oficina de Poké Bait",
     "intro": "Coloque bait seasonings na panela para preparar um Poké Bait. Pendure-o na Poké Rod e ele enviesa os spawns aquáticos como um Snack enviesa os terrestres.",
     "navLabel": "Bait"
+  },
+  "cookies": {
+    "dialogLabel": "Consentimento de cookies",
+    "body": "Usamos cookies de análise (visualizações, cliques, tempo, gravação anônima de sessão via PostHog) para melhorar o app. Nenhum dado é compartilhado com anunciantes. Você pode recusar — não muda o uso do site.",
+    "accept": "Aceitar",
+    "refuse": "Recusar"
+  },
+  "errors": {
+    "backHome": "Voltar ao início",
+    "retry": "Tentar de novo",
+    "code404": {
+      "title": "Página não encontrada",
+      "body": "Esta página não existe ou foi movida."
+    },
+    "code401": {
+      "title": "Autenticação necessária",
+      "body": "Faça login para acessar esta página."
+    },
+    "code403": {
+      "title": "Acesso negado",
+      "body": "Você não tem permissão aqui."
+    },
+    "code500": {
+      "title": "Algo quebrou do nosso lado",
+      "body": "Ocorreu um erro inesperado. Recarregue ou volte mais tarde."
+    },
+    "codeOffline": {
+      "title": "Sem conexão",
+      "body": "Você está offline. Reconecte-se e tente novamente."
+    }
   }
 }
