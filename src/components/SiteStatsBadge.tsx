@@ -6,9 +6,16 @@ import { Eye, Star } from "lucide-react";
 
 type Stats = {
   visits: number;
+  /** Raw vote total (each submission counts, even repeats from one IP). */
   ratingCount: number;
+  voteCount?: number;
+  /** Distinct ip_hash count — population that actually shaped the average. */
+  uniqueRaterCount?: number;
   ratingAverage: number;
 };
+
+/** Fired by RatingForm after a successful submit so the badge updates live. */
+export const SITE_RATING_SUBMITTED_EVENT = "site-rating-submitted";
 
 /**
  * Compact badge under the home intro: cumulative visits + average
@@ -22,6 +29,22 @@ export function SiteStatsBadge() {
   useEffect(() => {
     // Count this visit once per tab session, then fetch the aggregates.
     const KEY = "visit-counted";
+    let cancelled = false;
+
+    const refresh = async () => {
+      try {
+        // Cache buster so the freshly-submitted rating shows up
+        // immediately instead of waiting for the CDN's 30-second SWR.
+        const res = await fetch(`/api/site/stats?t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        const data = (await res.json()) as Stats;
+        if (!cancelled) setStats(data);
+      } catch {
+        /* ignore */
+      }
+    };
+
     const run = async () => {
       try {
         if (!sessionStorage.getItem(KEY)) {
@@ -31,15 +54,22 @@ export function SiteStatsBadge() {
       } catch {
         // Ignore — counter is best-effort.
       }
-      try {
-        const res = await fetch("/api/site/stats");
-        const data = (await res.json()) as Stats;
-        setStats(data);
-      } catch {
-        /* ignore */
-      }
+      await refresh();
     };
     run();
+
+    const onRated = () => {
+      // Small delay so the just-inserted row is visible to the SELECT
+      // (Postgres is sync but the no-store fetch needs to fire AFTER
+      // the rate POST completes — RatingForm dispatches the event in
+      // the same tick after `await fetch`).
+      refresh();
+    };
+    window.addEventListener(SITE_RATING_SUBMITTED_EVENT, onRated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SITE_RATING_SUBMITTED_EVENT, onRated);
+    };
   }, []);
 
   if (!stats) return null;
@@ -57,7 +87,7 @@ export function SiteStatsBadge() {
         <span
           className="inline-flex items-center gap-1.5"
           title={t("ratingTitle", {
-            count: stats.ratingCount,
+            count: stats.uniqueRaterCount ?? stats.ratingCount,
             avg: stats.ratingAverage,
           })}
         >
@@ -70,7 +100,7 @@ export function SiteStatsBadge() {
           </span>
           <span className="text-muted">/ 5</span>
           <span className="text-muted">
-            · {t("ratingVotes", { count: stats.ratingCount })}
+            · {t("ratingVotes", { count: stats.voteCount ?? stats.ratingCount })}
           </span>
         </span>
       )}

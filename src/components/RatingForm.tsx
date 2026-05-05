@@ -49,6 +49,13 @@ export function RatingForm({
       } catch {
         /* private mode */
       }
+      // Tell the home stats badge to re-fetch so the new vote shows up
+      // without a page reload. SiteStatsBadge listens for this event.
+      try {
+        window.dispatchEvent(new CustomEvent("site-rating-submitted"));
+      } catch {
+        /* SSR or hostile environment */
+      }
       setSubmitted(true);
       onSubmitted?.();
     } catch {

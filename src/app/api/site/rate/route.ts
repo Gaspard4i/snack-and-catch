@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { createHash } from "node:crypto";
-import { sql } from "drizzle-orm";
 import { db, isDbMissing, schema } from "@/lib/db/client";
 
 type Body = {
@@ -42,23 +41,16 @@ export async function POST(req: NextRequest) {
   const ipHash = createHash("sha256").update(`${secret}:${ip}`).digest("hex");
 
   try {
+    // Record every submission as its own row. The aggregate stats route
+    // computes the public average from EACH ip_hash's most recent vote,
+    // so re-rating doesn't double-count toward the average — but the
+    // raw vote_count keeps growing so we can show "X votes total" too.
     await db.insert(schema.siteRatings).values({
       stars,
       comment,
       locale,
       ipHash,
     });
-    await db
-      .insert(schema.siteStats)
-      .values({ id: 1, ratingCount: 1, ratingSum: stars })
-      .onConflictDoUpdate({
-        target: schema.siteStats.id,
-        set: {
-          ratingCount: sql`${schema.siteStats.ratingCount} + 1`,
-          ratingSum: sql`${schema.siteStats.ratingSum} + ${stars}`,
-          updatedAt: new Date(),
-        },
-      });
   } catch (err) {
     console.warn("[site/rate] failed:", err instanceof Error ? err.message : err);
   }
