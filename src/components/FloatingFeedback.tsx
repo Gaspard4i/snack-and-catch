@@ -46,7 +46,7 @@ export function FloatingFeedback() {
             </button>
           </div>
           <p className="text-xs text-muted leading-relaxed">{t("bodyShort")}</p>
-          <RatingForm showComment={false} />
+          <RatingForm showComment />
           <div className="pt-1 border-t border-border space-y-1.5">
             <ShareButton className="mt-2 w-full" />
             <a
