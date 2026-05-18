@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { listBerries } from "@/lib/db/queries";
 
-// Force dynamic: route depend de donnees DB, pas de prerender statique
-export const dynamic = "force-dynamic";
-
 export const metadata = {
   title: "Debug",
 };

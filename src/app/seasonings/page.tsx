@@ -2,10 +2,6 @@ import { listBerries, listAllSeasonings, listBaitEffects } from "@/lib/db/querie
 import { BAIT_VANILLA_ITEMS } from "@/lib/recommend/bait-effects";
 import { SeasoningDexClient, type SeasoningRow } from "./SeasoningDexClient";
 
-// Page server-side qui depend de donnees DB : pas de prerender statique au build,
-// sinon les arrays vides du build (DATABASE_URL inaccessible) sont baked dans le cache.
-export const dynamic = "force-dynamic";
-
 export const metadata = {
   title: "Seasoning Dex",
   description:

@@ -1,8 +1,5 @@
 import { listBerries } from "@/lib/db/queries";
 
-// Route API server-side qui depend de donnees DB : pas de prerender statique au build
-export const dynamic = "force-dynamic";
-
 export async function GET() {
   const berries = await listBerries();
   return Response.json(
