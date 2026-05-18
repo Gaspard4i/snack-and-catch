@@ -1,4 +1,8 @@
 {
+  "buildCommand": null,
+  "outputDirectory": ".",
+  "framework": null,
+  "installCommand": null,
   "redirects": [
     { "source": "/(.*)", "destination": "https://snack-and-catch.gazai.fr/$1", "permanent": true }
   ]
