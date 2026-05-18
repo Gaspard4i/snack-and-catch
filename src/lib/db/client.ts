@@ -64,18 +64,33 @@ export const db: DB = new Proxy({} as DB, {
  * fallback. In normal runtime with a configured DB, errors still propagate.
  */
 export async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
-  if (isDbMissing()) return fallback;
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
+  if (isDbMissing()) {
+    // Build sans DATABASE_URL : on throw pour que Next skip le prerender de cette
+    // route plutot que de cacher [] dans le Data Cache (qui resterait servi
+    // jusqu'a la prochaine revalidation, soit 6h).
+    if (isBuildPhase) {
+      throw new Error("[db] DATABASE_URL missing at build time — skipping prerender");
+    }
+    return fallback;
+  }
   try {
     return await fn();
   } catch (err) {
+    // Pendant le build, throw aussi pour invalider le prerender et eviter de
+    // mettre en cache un fallback vide. unstable_cache ne stockera pas une
+    // exception, donc le runtime retentera la query live et marchera.
+    if (isBuildPhase) {
+      throw err;
+    }
     /**
-     * Always degrade gracefully instead of throwing. A throw here bubbles up
-     * into the Server Component render, which Next surfaces as the generic
-     * "A server error occurred" page — useless to users when the underlying
-     * cause is a transient DB issue (Neon free-tier quota exhausted, cold
-     * compute, sleeping branch). Returning the fallback keeps the route
-     * renderable; downstream components already cope with empty arrays /
-     * null. The error is logged so Vercel logs still expose the cause.
+     * Runtime : degrader gracieusement plutot que throw. Un throw ici remonte
+     * dans le Server Component render et Next affiche la generique "A server
+     * error occurred" — inutile pour les users quand la cause est un probleme
+     * DB transient (quota Neon, cold compute, branch endormi). Retourner le
+     * fallback garde la route renderable ; les composants downstream gerent
+     * deja les arrays vides / null. L'erreur est logguee pour visibilite.
      */
     console.warn(
       "[db] query failed, falling back:",
