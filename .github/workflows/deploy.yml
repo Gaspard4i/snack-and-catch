@@ -45,6 +45,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             DATABASE_URL=${{ secrets.DATABASE_URL_BUILD }}
+            NEXT_PUBLIC_SITE_URL=https://snack-and-catch.gazai.fr
 
   deploy:
     name: Pull & restart on VPS
