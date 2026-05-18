@@ -6,7 +6,9 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 RUN corepack enable pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+# pnpm v11 bloque les postinstalls non-explicitement autorises.
+# --config.dangerouslyAllowAllBuilds=true permet a sharp/esbuild de compiler.
+RUN pnpm install --frozen-lockfile --config.dangerouslyAllowAllBuilds=true
 
 # --- Build stage ---
 FROM node:22-alpine AS build
