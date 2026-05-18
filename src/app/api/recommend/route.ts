@@ -6,6 +6,9 @@ import {
 } from "@/lib/db/queries";
 import { topBaits } from "@/lib/recommend/bait";
 
+// Force dynamic: route depend de donnees DB, pas de prerender statique
+export const dynamic = "force-dynamic";
+
 type Intent = "spawn" | "bait" | "all";
 
 function ok(data: unknown) {

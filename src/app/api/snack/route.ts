@@ -25,6 +25,9 @@ import {
 } from "@/lib/recommend/snack-spawn";
 import type { Berry } from "@/lib/db/schema";
 
+// Force dynamic: route depend de donnees DB, pas de prerender statique
+export const dynamic = "force-dynamic";
+
 type IncomingFilter = Partial<SpawnFilter> & {
   biome?: string;
   timeRange?: string;

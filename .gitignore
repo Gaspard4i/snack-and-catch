@@ -47,3 +47,4 @@ AGENTS.md
 /tests/fixtures/*_clone/
 
 .vercel
+.vercel/

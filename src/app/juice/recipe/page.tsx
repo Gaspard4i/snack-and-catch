@@ -4,6 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { listBerries } from "@/lib/db/queries";
 import { ItemIcon } from "@/components/ItemIcon";
+
+// Page server-side qui depend de donnees DB : pas de prerender statique au build
 import type { Apricorn, Flavour } from "@/lib/recommend/aprijuice";
 import { cookAprijuice } from "@/lib/recommend/aprijuice";
 import { RideStatsGrid } from "@/components/juice/RideStatsGrid";

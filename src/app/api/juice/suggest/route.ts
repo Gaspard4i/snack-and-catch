@@ -7,6 +7,9 @@ import type {
   RidingStat,
 } from "@/lib/recommend/aprijuice";
 import {
+
+// Force dynamic: route depend de donnees DB, pas de prerender statique
+export const dynamic = "force-dynamic";
   achievableMaxPerStat,
   achievableVectors,
   suggestAprijuice,
