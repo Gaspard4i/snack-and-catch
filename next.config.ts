@@ -5,6 +5,8 @@ import { withBotId } from "botid/next/config";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // Build standalone pour Docker (copy minimal deps + .next/standalone)
+  output: "standalone",
   cacheComponents: true,
   experimental: {
     // Enables unauthorized()/forbidden() from "next/navigation" to render
