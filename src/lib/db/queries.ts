@@ -381,6 +381,44 @@ export const listBerries = cached("berries", SIX_HOURS, async () =>
   ),
 );
 
+export type BerryDropWithSpecies = {
+  berryItemId: string;
+  speciesId: number;
+  percentage: number | null;
+  quantityRange: string | null;
+  slug: string;
+  name: string;
+  dexNo: number;
+  primaryType: string;
+  secondaryType: string | null;
+};
+
+/**
+ * Every berry → Pokémon drop, joined with the dropping species. The whole
+ * table is ~700 rows, so we load it once and let the berry page filter by
+ * item id rather than issuing a query per berry.
+ */
+export const listBerryDrops = cached("berry-drops", SIX_HOURS, async () =>
+  safe(
+    () =>
+      db
+        .select({
+          berryItemId: schema.berryDrops.berryItemId,
+          speciesId: schema.berryDrops.speciesId,
+          percentage: schema.berryDrops.percentage,
+          quantityRange: schema.berryDrops.quantityRange,
+          slug: schema.species.slug,
+          name: schema.species.name,
+          dexNo: schema.species.dexNo,
+          primaryType: schema.species.primaryType,
+          secondaryType: schema.species.secondaryType,
+        })
+        .from(schema.berryDrops)
+        .innerJoin(schema.species, eq(schema.berryDrops.speciesId, schema.species.id)),
+    [] as BerryDropWithSpecies[],
+  ),
+);
+
 export async function getBerriesBySlug(slugs: string[]) {
   if (slugs.length === 0) return [];
   return safe(

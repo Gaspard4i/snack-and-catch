@@ -19,6 +19,8 @@
     "ingest:reset:prod": "tsx --env-file=.env.production ingest/reset.ts",
     "ingest:wiki": "tsx --env-file=.env.local ingest/wiki.ts",
     "ingest:berries-wiki": "tsx --env-file=.env.local ingest/berries_wiki.ts",
+    "ingest:berry-drops": "tsx --env-file=.env.local ingest/berry_drops.ts",
+    "ingest:berry-drops:prod": "tsx --env-file=.env.production ingest/berry_drops.ts",
     "ingest:textures": "tsx --env-file=.env.local ingest/textures.ts"
   },
   "dependencies": {
