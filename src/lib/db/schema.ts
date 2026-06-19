@@ -337,6 +337,31 @@ export const berries = pgTable(
   (t) => [uniqueIndex("berries_slug_idx").on(t.slug)],
 );
 
+/**
+ * Which Pokémon drop which berry, with the drop chance. Sourced from each
+ * species' `drops.entries[]` (base + forms) in the Cobblemon repo. Keyed on
+ * the berry item id so the berry page can look up its droppers in one query.
+ */
+export const berryDrops = pgTable(
+  "berry_drops",
+  {
+    id: serial("id").primaryKey(),
+    /** `cobblemon:cheri_berry`. */
+    berryItemId: text("berry_item_id").notNull(),
+    speciesId: integer("species_id")
+      .notNull()
+      .references(() => species.id, { onDelete: "cascade" }),
+    /** 0–100 drop chance, null for a guaranteed quantity-range drop. */
+    percentage: real("percentage"),
+    quantityRange: text("quantity_range"),
+  },
+  (t) => [
+    uniqueIndex("berry_drops_item_species_idx").on(t.berryItemId, t.speciesId),
+    index("berry_drops_item_idx").on(t.berryItemId),
+    index("berry_drops_species_idx").on(t.speciesId),
+  ],
+);
+
 export const speciesWiki = pgTable(
   "species_wiki",
   {
@@ -408,6 +433,8 @@ export type BaitEffect = typeof baitEffects.$inferSelect;
 export type Recipe = typeof recipes.$inferSelect;
 export type SpeciesWiki = typeof speciesWiki.$inferSelect;
 export type Berry = typeof berries.$inferSelect;
+export type BerryDrop = typeof berryDrops.$inferSelect;
+export type NewBerryDrop = typeof berryDrops.$inferInsert;
 export type SpawnPreset = typeof spawnPresets.$inferSelect;
 export type NewSpawnPreset = typeof spawnPresets.$inferInsert;
 export type Mod = typeof mods.$inferSelect;

@@ -47,6 +47,7 @@ import {
   dominantFlavour,
 } from "../src/lib/parsers/seasoning";
 import { cookingRecipeSchema, shapedToGrid, classifyRecipe } from "../src/lib/parsers/recipe";
+import { extractBerryDrops } from "../src/lib/parsers/drops";
 import { relative } from "node:path";
 
 const CACHE_DIR = join(tmpdir(), "snack-and-catch-cobblemon");
@@ -93,6 +94,7 @@ async function truncateSpawnSide() {
   console.log("[reset] truncating spawn-side tables");
   await db.execute(sql`
     TRUNCATE TABLE
+      "berry_drops",
       "data_sources",
       "species_wiki",
       "spawns",
@@ -289,6 +291,11 @@ async function ingestBiomeTags(clone: RepoClone): Promise<void> {
     memberRows.push({ tagId: endTagId, biomeId: id });
   }
 
+  // Modded biome tags — load from data/custom-biomes.json so the user
+  // can extend the dex with Terralith, BiomesOPlenty, etc. without
+  // touching the ingest code. File is optional.
+  const customAdded = await loadCustomBiomeTags(tagRows, memberRows, seenTags, sortOrder);
+
   await db.insert(schema.biomeTags).values(tagRows);
   // Insert members in chunks to avoid postgres parameter limits.
   for (let i = 0; i < memberRows.length; i += 500) {
@@ -296,8 +303,117 @@ async function ingestBiomeTags(clone: RepoClone): Promise<void> {
     await db.insert(schema.biomeTagMembers).values(chunk).onConflictDoNothing();
   }
   console.log(
-    `[reset] biome_tags=${tagRows.length} biome_tag_members=${memberRows.length}`,
+    `[reset] biome_tags=${tagRows.length} biome_tag_members=${memberRows.length}` +
+      (customAdded > 0 ? ` (incl. ${customAdded} custom)` : ""),
   );
+}
+
+/**
+ * Optional `data/custom-biomes.json` lets the user wire in modded biome
+ * tags (Terralith, BiomesOPlenty, Oh The Biomes You'll Go, …). Format:
+ *
+ * {
+ *   "tags": [
+ *     { "id": "#terralith:is_overworld", "label": "Terralith Overworld",
+ *       "dimension": "minecraft:overworld", "section": "Modded biomes" }
+ *   ],
+ *   "members": [
+ *     { "tagId": "#terralith:is_overworld",
+ *       "biomes": ["terralith:alpha_islands", "terralith:cloud_forest"] }
+ *   ]
+ * }
+ *
+ * Returns the number of new tags appended (0 if file is missing).
+ */
+async function loadCustomBiomeTags(
+  tagRows: Array<typeof schema.biomeTags.$inferInsert>,
+  memberRows: Array<typeof schema.biomeTagMembers.$inferInsert>,
+  seenTags: Set<string>,
+  baseSortOrder: number,
+): Promise<number> {
+  const path = `${process.cwd()}/data/custom-biomes.json`;
+  let raw: unknown;
+  try {
+    raw = await readJson(path);
+  } catch {
+    return 0;
+  }
+  const parsed = raw as {
+    tags?: Array<{ id: string; label?: string; dimension?: string; section?: string }>;
+    members?: Array<{ tagId: string; biomes: string[] }>;
+  };
+
+  // Auto-register dimensions referenced by custom tags but missing from
+  // the world graph (aether:the_aether, the_bumblezone:the_bumblezone, …).
+  // Without this the FK on biome_tags.dimension_id rejects the insert.
+  const knownDimensions = await db.select({ id: schema.dimensions.id }).from(schema.dimensions);
+  const knownDimSet = new Set(knownDimensions.map((d) => d.id));
+  const newDims = new Map<string, { modId: string; label: string }>();
+  for (const t of parsed.tags ?? []) {
+    const dim = t.dimension ?? "minecraft:overworld";
+    if (knownDimSet.has(dim) || newDims.has(dim)) continue;
+    const modId = dim.split(":", 1)[0];
+    newDims.set(dim, {
+      modId,
+      label: dim
+        .split(":")[1]
+        .replace(/_/g, " ")
+        .replace(/^the /, "The "),
+    });
+  }
+  if (newDims.size > 0) {
+    // Modded mods may not exist in the mods table — insert them on the
+    // fly with a stable sort order so the dropdown groups them last.
+    const modIds = new Set([...newDims.values()].map((d) => d.modId));
+    const knownMods = await db.select({ id: schema.mods.id }).from(schema.mods);
+    const knownModSet = new Set(knownMods.map((m) => m.id));
+    const modsToInsert = [...modIds]
+      .filter((id) => !knownModSet.has(id))
+      .map((id) => ({
+        id,
+        label: id.charAt(0).toUpperCase() + id.slice(1).replace(/_/g, " "),
+        sortOrder: 500,
+      }));
+    if (modsToInsert.length > 0) {
+      await db.insert(schema.mods).values(modsToInsert).onConflictDoNothing();
+    }
+    await db
+      .insert(schema.dimensions)
+      .values(
+        [...newDims.entries()].map(([id, info]) => ({
+          id,
+          label: info.label,
+          modId: info.modId,
+          sortOrder: 500,
+        })),
+      )
+      .onConflictDoNothing();
+    for (const id of newDims.keys()) knownDimSet.add(id);
+  }
+
+  let added = 0;
+  let order = baseSortOrder;
+  for (const t of parsed.tags ?? []) {
+    if (!t.id || seenTags.has(t.id)) continue;
+    seenTags.add(t.id);
+    const dim = t.dimension ?? "minecraft:overworld";
+    tagRows.push({
+      id: t.id,
+      label: t.label ?? t.id.replace(/^#?[^:]+:/, "").replace(/_/g, " "),
+      dimensionId: knownDimSet.has(dim) ? dim : "minecraft:overworld",
+      section: t.section ?? "Modded biomes",
+      sortOrder: order++,
+    });
+    added++;
+  }
+  for (const m of parsed.members ?? []) {
+    if (!m.tagId || !Array.isArray(m.biomes)) continue;
+    for (const biomeId of m.biomes) {
+      if (typeof biomeId !== "string" || !biomeId.includes(":")) continue;
+      memberRows.push({ tagId: m.tagId, biomeId });
+    }
+  }
+  return added;
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -1011,6 +1127,40 @@ async function ingestBerries(clone: RepoClone) {
   console.log(`[reset] berries ok=${ok} failed=${failed}`);
 }
 
+/**
+ * Berry drops are derived from species we already ingested — every
+ * `species.raw` carries its `drops` block (and per-form drops). We scan
+ * those instead of re-reading the repo so this step also works standalone
+ * (see ingest/berry_drops.ts) after a plain reset.
+ */
+export async function ingestBerryDrops() {
+  const rows = await db
+    .select({ id: schema.species.id, raw: schema.species.raw })
+    .from(schema.species);
+  const values: Array<typeof schema.berryDrops.$inferInsert> = [];
+  for (const s of rows) {
+    for (const d of extractBerryDrops(s.raw)) {
+      values.push({
+        berryItemId: d.berryItemId,
+        speciesId: s.id,
+        percentage: d.percentage,
+        quantityRange: d.quantityRange,
+      });
+    }
+  }
+  await db.delete(schema.berryDrops);
+  for (let i = 0; i < values.length; i += 500) {
+    await db
+      .insert(schema.berryDrops)
+      .values(values.slice(i, i + 500))
+      .onConflictDoNothing();
+  }
+  const distinctBerries = new Set(values.map((v) => v.berryItemId)).size;
+  console.log(
+    `[reset] berry_drops rows=${values.length} berries=${distinctBerries}`,
+  );
+}
+
 async function ingestRecipes(clone: RepoClone) {
   const dir = dataPath(clone, "recipe", "campfire_pot");
   const files = await listJsonFiles(dir);
@@ -1113,13 +1263,20 @@ async function main() {
   await ingestBaitEffects(clone);
   await ingestRecipes(clone);
   await ingestBerries(clone);
+  await ingestBerryDrops();
 
   console.log("[reset] done");
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+// Only run the full reset when this file is the entry point. Importing it
+// (e.g. ingest/berry_drops.ts reusing ingestBerryDrops) must not trigger it.
+// Compare basenames — robust across Windows path/URL quirks.
+const isEntryPoint = basename(process.argv[1] ?? "") === "reset.ts";
+if (isEntryPoint) {
+  main()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}
