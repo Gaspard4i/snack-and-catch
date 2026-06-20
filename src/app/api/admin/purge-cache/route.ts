@@ -2,6 +2,7 @@ import { revalidateTag } from "next/cache";
 
 const TAGS = [
   "berries",
+  "berry-drops",
   "seasonings",
   "seasonings-all",
   "bait-effects",
