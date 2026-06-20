@@ -47,7 +47,7 @@ import {
   dominantFlavour,
 } from "../src/lib/parsers/seasoning";
 import { cookingRecipeSchema, shapedToGrid, classifyRecipe } from "../src/lib/parsers/recipe";
-import { extractBerryDrops } from "../src/lib/parsers/drops";
+import { ingestBerryDrops } from "../src/lib/ingest/berry-drops";
 import { relative } from "node:path";
 
 const CACHE_DIR = join(tmpdir(), "snack-and-catch-cobblemon");
@@ -1127,40 +1127,6 @@ async function ingestBerries(clone: RepoClone) {
   console.log(`[reset] berries ok=${ok} failed=${failed}`);
 }
 
-/**
- * Berry drops are derived from species we already ingested — every
- * `species.raw` carries its `drops` block (and per-form drops). We scan
- * those instead of re-reading the repo so this step also works standalone
- * (see ingest/berry_drops.ts) after a plain reset.
- */
-export async function ingestBerryDrops() {
-  const rows = await db
-    .select({ id: schema.species.id, raw: schema.species.raw })
-    .from(schema.species);
-  const values: Array<typeof schema.berryDrops.$inferInsert> = [];
-  for (const s of rows) {
-    for (const d of extractBerryDrops(s.raw)) {
-      values.push({
-        berryItemId: d.berryItemId,
-        speciesId: s.id,
-        percentage: d.percentage,
-        quantityRange: d.quantityRange,
-      });
-    }
-  }
-  await db.delete(schema.berryDrops);
-  for (let i = 0; i < values.length; i += 500) {
-    await db
-      .insert(schema.berryDrops)
-      .values(values.slice(i, i + 500))
-      .onConflictDoNothing();
-  }
-  const distinctBerries = new Set(values.map((v) => v.berryItemId)).size;
-  console.log(
-    `[reset] berry_drops rows=${values.length} berries=${distinctBerries}`,
-  );
-}
-
 async function ingestRecipes(clone: RepoClone) {
   const dir = dataPath(clone, "recipe", "campfire_pot");
   const files = await listJsonFiles(dir);
@@ -1263,7 +1229,8 @@ async function main() {
   await ingestBaitEffects(clone);
   await ingestRecipes(clone);
   await ingestBerries(clone);
-  await ingestBerryDrops();
+  const drops = await ingestBerryDrops();
+  console.log(`[reset] berry_drops rows=${drops.rows} berries=${drops.berries}`);
 
   console.log("[reset] done");
 }

@@ -31,11 +31,11 @@ Pokémon you want actually spawns.
 
 - **Next.js 16** (App Router, Cache Components / PPR) + **React 19**
 - **Tailwind CSS 4**
-- **PostgreSQL** — Docker locally, Neon in production
+- **PostgreSQL** — Docker locally and in production (self-hosted on the gazai VPS)
 - **Drizzle ORM** + **Zod** for typed data access and validation
 - **Three.js** / `@react-three/fiber` for the 3D snack preview
 - **Vitest** for unit + integration tests
-- Deployed on **Vercel**
+- Deployed on the **gazai VPS** (Docker Compose, image built and pushed by GitHub Actions)
 
 ## Data sources
 
@@ -98,9 +98,13 @@ tests/                   Vitest specs and fixtures
 
 ## Deployment
 
-The app is deployed on Vercel. The `master` branch is auto-deployed to
-production. Database migrations are applied via
-`pnpm db:migrate:prod` against the Neon connection string.
+The app is self-hosted on the gazai VPS with Docker Compose. Pushing to
+`master` triggers GitHub Actions, which builds the image, pushes it to
+GHCR, and runs `deploy.sh` on the VPS to pull and restart the web service.
+
+The production Postgres (`snack-db`) is not exposed outside the VPS, so DB
+tasks run inside the container over SSH — e.g.
+`pnpm ingest:berry-drops:prod`. See `.env.production` for details.
 
 `metadataBase` reads from `NEXT_PUBLIC_SITE_URL` so OpenGraph and
 Twitter cards always resolve to the right host on previews.

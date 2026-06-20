@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/queries";
 import { formatBaitEffects, type RawBaitEffect } from "@/lib/recommend/bait-effects";
 import { TYPE_TO_FLAVOUR } from "@/lib/recommend/snack";
+import { mutationsProducing } from "@/lib/recommend/mutations";
 import { BerryViewer } from "./BerryViewer";
 
 /** Strip "cobblemon:is_plains" → "plains" for display. */
@@ -134,6 +135,19 @@ export default async function BerryPage({ params }: { params: Promise<Params> })
   const droppedBy = allDrops
     .filter((d) => d.berryItemId === berry.itemId)
     .sort((a, b) => (b.percentage ?? -1) - (a.percentage ?? -1));
+
+  // Parent pairs that mutate into this berry (planted side by side).
+  // Resolve each parent item id back to a berry slug so we can link it.
+  const berryByItemId = new Map(berries.map((b) => [b.itemId, b]));
+  const mutationPairs = mutationsProducing(
+    berry.itemId,
+    berries.map((b) => ({
+      slug: b.slug,
+      itemId: b.itemId,
+      mutations: (b.raw as { mutations?: Record<string, string> } | null)
+        ?.mutations,
+    })),
+  );
 
   const baitRow = baitRows.find((r) => r.itemId === berry.itemId);
   const rawEffects: RawBaitEffect[] = (baitRow?.effects ?? []) as RawBaitEffect[];
@@ -372,8 +386,9 @@ export default async function BerryPage({ params }: { params: Promise<Params> })
             </h2>
             {preferredBiomeTags.length === 0 ? (
               <p className="text-sm text-muted">
-                Doesn&apos;t grow in the wild — you obtain this berry by
-                crossing two parent berries on a sapling (mutation only).
+                {mutationPairs.length > 0
+                  ? "Doesn't grow in the wild — you obtain this berry only by crossing two parent berries (see below)."
+                  : "Doesn't grow in the wild and has no known cross — obtained from drops or recipes."}
               </p>
             ) : (
               <>
@@ -428,6 +443,54 @@ export default async function BerryPage({ params }: { params: Promise<Params> })
               </>
             )}
           </section>
+
+          {mutationPairs.length > 0 && (
+            <section className="rounded-lg border border-border bg-card p-4">
+              <h2 className="text-xs uppercase tracking-wide text-muted mb-2">
+                Obtained by mutation ({mutationPairs.length})
+              </h2>
+              <p className="text-xs text-muted mb-3">
+                Plant these two berries next to each other on tilled soil — the
+                cross has a chance to grow a {berry.slug.replace(/_/g, " ")}.
+              </p>
+              <ul className="space-y-2">
+                {mutationPairs.map(({ parents }) => (
+                  <li
+                    key={parents.join("+")}
+                    className="flex items-center gap-2 text-sm flex-wrap"
+                  >
+                    {parents.map((itemId, i) => {
+                      const parent = berryByItemId.get(itemId);
+                      const parentSlug =
+                        parent?.slug ?? itemId.replace(/^[^:]+:/, "");
+                      const label = parentSlug.replace(/_/g, " ");
+                      return (
+                        <span key={itemId} className="flex items-center gap-2">
+                          {i > 0 && (
+                            <span className="text-muted text-xs">+</span>
+                          )}
+                          <Link
+                            href={`/berry/${parentSlug}`}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-subtle capitalize"
+                          >
+                            <Image
+                              src={`/textures/cobblemon/item/berries/${parentSlug}.png`}
+                              alt={label}
+                              width={20}
+                              height={20}
+                              style={{ imageRendering: "pixelated" }}
+                              unoptimized
+                            />
+                            {label}
+                          </Link>
+                        </span>
+                      );
+                    })}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
 
         {/* Bait effects + attracted */}

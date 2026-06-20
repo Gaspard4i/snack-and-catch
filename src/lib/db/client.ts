@@ -10,8 +10,8 @@ export const isDbMissing = () => !process.env.DATABASE_URL;
 /**
  * Cache the postgres client on globalThis so Next.js HMR reloads reuse the
  * same pool. Otherwise each hot reload opens a fresh pool and the old ones
- * linger until their idle_timeout, quickly hitting Neon's connection cap
- * with "sorry, too many clients already".
+ * linger until their idle_timeout, quickly hitting the Postgres connection
+ * cap with "sorry, too many clients already".
  */
 const GLOBAL_KEY = Symbol.for("snackAndCatch.db");
 type GlobalDb = { db?: DB; client?: postgres.Sql };
@@ -27,10 +27,11 @@ function createDb(): DB {
     );
   }
   /**
-   * Supabase / Neon poolers terminate TLS — `ssl: "require"` makes the
-   * postgres-js client opt into encrypted transport without needing a CA
-   * bundle. Without this, the connection silently fails on Vercel lambdas
-   * because the host enforces TLS and we'd otherwise speak plain TCP.
+   * Managed poolers (Supabase / Neon / RDS …) terminate TLS — `ssl:
+   * "require"` makes the postgres-js client opt into encrypted transport
+   * without needing a CA bundle. The self-hosted gazai DB runs on the
+   * internal Docker network (`@db:5432`, no SSL), so it correctly skips
+   * this branch.
    */
   const needsSsl = /supabase|neon|render|amazonaws|sslmode=require/.test(url);
   const client = postgres(url, {
@@ -88,7 +89,7 @@ export async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
      * Runtime : degrader gracieusement plutot que throw. Un throw ici remonte
      * dans le Server Component render et Next affiche la generique "A server
      * error occurred" — inutile pour les users quand la cause est un probleme
-     * DB transient (quota Neon, cold compute, branch endormi). Retourner le
+     * DB transient (conteneur qui redemarre, pool sature). Retourner le
      * fallback garde la route renderable ; les composants downstream gerent
      * deja les arrays vides / null. L'erreur est logguee pour visibilite.
      */

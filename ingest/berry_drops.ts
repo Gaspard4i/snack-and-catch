@@ -1,16 +1,16 @@
 /**
  * Standalone re-ingest of the berry_drops table from species already in the
- * DB. Run after a normal ingest when you only need to refresh the
- * berry → Pokémon drop mapping without a full reset.
+ * DB. No repo clone needed — it reads species.raw. Safe to run inside the
+ * production container against the gazai database.
  *
  *   pnpm ingest:berry-drops          (local)
- *   pnpm ingest:berry-drops:prod     (production)
+ *   pnpm ingest:berry-drops:prod     (gazai, via the container)
  */
-import { ingestBerryDrops } from "./reset";
+import { ingestBerryDrops } from "../src/lib/ingest/berry-drops";
 
 ingestBerryDrops()
-  .then(() => {
-    console.log("[berry-drops] done");
+  .then((r) => {
+    console.log(`[berry-drops] rows=${r.rows} berries=${r.berries}`);
     process.exit(0);
   })
   .catch((err) => {
