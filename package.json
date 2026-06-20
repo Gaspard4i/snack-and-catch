@@ -14,12 +14,10 @@
     "db:push:prod": "echo 'Prod DB is gazai (not exposed). Apply schema via: ssh gazai -> docker exec snack-web node_modules/.bin/drizzle-kit push, or run the SQL inside snack-db. See .env.production.' && exit 1",
     "ingest": "tsx --env-file=.env.local ingest/reset.ts",
     "ingest:reset": "tsx --env-file=.env.local ingest/reset.ts",
-    "ingest:prod": "ssh gazai \"sudo -u deploy docker exec snack-web sh -lc 'cd /app && node_modules/.bin/tsx ingest/reset.ts'\"",
-    "ingest:reset:prod": "ssh gazai \"sudo -u deploy docker exec snack-web sh -lc 'cd /app && node_modules/.bin/tsx ingest/reset.ts'\"",
     "ingest:wiki": "tsx --env-file=.env.local ingest/wiki.ts",
     "ingest:berries-wiki": "tsx --env-file=.env.local ingest/berries_wiki.ts",
     "ingest:berry-drops": "tsx --env-file=.env.local ingest/berry_drops.ts",
-    "ingest:berry-drops:prod": "ssh gazai \"sudo -u deploy docker exec snack-web sh -lc 'cd /app && node_modules/.bin/tsx ingest/berry_drops.ts'\"",
+    "ingest:berry-drops:prod": "cat ingest/sql/berry_drops.sql | ssh gazai \"sudo -u deploy docker exec -i snack-db psql -U snack -d snack -v ON_ERROR_STOP=1\"",
     "ingest:textures": "tsx --env-file=.env.local ingest/textures.ts"
   },
   "dependencies": {
