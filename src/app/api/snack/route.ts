@@ -16,6 +16,7 @@ import {
 import {
   BAIT_VANILLA_ITEMS,
   formatBaitEffects,
+  mergeRawBaitEffects,
   type FormattedBaitEffect,
   type RawBaitEffect,
 } from "@/lib/recommend/bait-effects";
@@ -323,25 +324,20 @@ export async function POST(req: NextRequest) {
     ...(EFFECT_TAG_LABELS[t] ?? { title: t, description: "", tone: "utility" }),
   }));
 
-  // Aggregate bait-seasoning effects across every placed slot (berries + vanilla).
-  // Effects of the same (kind, title) are merged: their chances sum, capped at 100%.
-  const baitEffects: FormattedBaitEffect[] = [];
+  // Aggregate bait-seasoning effects across every placed slot (berries +
+  // vanilla). We merge the RAW effects first, faithfully reproducing
+  // Cobblemon's SpawnBaitUtils.mergeEffects (group by (type, subcategory);
+  // chances sum capped at 100%; values sum then ceil), THEN format the
+  // merged set. So 3× "shiny ×4" become a single "shiny ×12" chip.
+  const rawForMerge: RawBaitEffect[] = [];
   for (const slug of validSlugs) {
     const itemId = itemIdBySlug.get(slug);
     if (!itemId) continue;
-    const raw = baitByItem.get(itemId) ?? [];
-    baitEffects.push(...formatBaitEffects(raw));
+    rawForMerge.push(...(baitByItem.get(itemId) ?? []));
   }
-  const mergedBaitEffects: FormattedBaitEffect[] = [];
-  for (const eff of baitEffects) {
-    const key = `${eff.kind}:${eff.title}`;
-    const existing = mergedBaitEffects.find((e) => `${e.kind}:${e.title}` === key);
-    if (existing) {
-      existing.chance = Math.min(1, existing.chance + eff.chance);
-    } else {
-      mergedBaitEffects.push({ ...eff });
-    }
-  }
+  const mergedBaitEffects: FormattedBaitEffect[] = formatBaitEffects(
+    mergeRawBaitEffects(rawForMerge),
+  );
 
   // Re-implement the actual Cobblemon Poké Snack attraction pipeline.
   // Gather candidates from the world pool, filter by SpawnRules (biome /

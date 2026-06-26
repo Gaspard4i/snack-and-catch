@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "Snack & Catch",
-    "tagline": "For every Cobblemon: which Poké Snack to cook to attract it, where it spawns, under what conditions.",
+    "tagline": "Cook the right Poké Snack, brew the right Aprijuice, find where each Cobblemon spawns and under what conditions. Built on real mod data.",
     "indexedSpecies": "{count} species indexed."
   },
   "footer": {
@@ -41,14 +41,14 @@
   },
   "cake": {
     "title": "Poké Snack maker",
-    "intro": "Drop a bait seasoning into a slot. Depending on the seasoning, the Snack biases attraction by type, egg group, nature or IVs; some boost shiny odds, hidden ability or rarity bucket. Place the Snack on the ground to draw Cobblemon within 8 blocks."
+    "intro": "Pick up to 3 seasonings to cook in the Campfire Pot, then filter by dimension, biome, structure, time, weather, moon and light to see exactly which Cobblemon your Snack will attract."
   },
   "biome": {
     "spawnsHere": "Spawns listed ({count})"
   },
   "about": {
     "title": "About",
-    "intro": "Snack & Catch references data published by the Cobblemon mod and popular community addons. Every displayed value is linked to its source.",
+    "intro": "Snack & Catch reproduces the Cobblemon mod's snack, juice and spawn pipelines from its open-source data. Every value on the site is traceable to its mod or addon source.",
     "sources": "Data sources",
     "api": "Public API",
     "apiIntro": "Read-only JSON endpoint, 60s cache, rate limit 60 req/min/IP.",
@@ -78,6 +78,7 @@
     "placeholder": "Search a Cobblemon (e.g. pikachu, victini…)",
     "submit": "Search",
     "title": "Search a Cobblemon",
+    "intro": "Find a Cobblemon by name and narrow down by type, rarity bucket or data source. Tap a result to open its species page.",
     "noResults": "No result for \"{q}\".",
     "loading": "Loading…"
   },
@@ -202,11 +203,12 @@
     "sort": "Sort",
     "search": "Search",
     "remaining": "{count} remaining",
-    "noMatch": "No match."
+    "noMatch": "No match.",
+    "share": "Share"
   },
   "juice": {
     "title": "Aprijuice maker",
-    "intro": "Brew an aprijuice in the Campfire Pot. The apricorn colour provides a baked-in set of ride stat deltas; berries added as seasoning contribute flavour points that convert into extra boosts via the threshold table (15 → 1pt, 35 → 2pt, 45 → 3pt, 55 → 4pt, 75 → 5pt, 105 → 6pt).",
+    "intro": "Pick an apricorn and up to 3 berries; the solver finds the recipe that hits your target ride stats. Berries cross flavour thresholds (15 / 35 / 45 / 55 / 75 / 105 points) to add boosts on top of the apricorn baseline.",
     "modeCook": "Cook a juice",
     "modeSuggest": "I want a stat → suggest",
     "targetTitle": "Rank ride stats by priority",
@@ -327,7 +329,9 @@
     "shiny": "Shiny",
     "noAttracted": "No Cobblemon match. Try removing filters.",
     "dropHint": "Drop a bait seasoning here",
-    "previewDisclaimer": "Preview only. the in-game snack may look different."
+    "previewDisclaimer": "Preview only. the in-game snack may look different.",
+    "reset": "Reset",
+    "share": "Share"
   },
   "pokedexUi": {
     "searchPlaceholder": "Search Cobblemon by name…",
@@ -373,7 +377,7 @@
   },
   "bait": {
     "title": "Poké Bait maker",
-    "intro": "Drop bait seasonings into the cooking pot to brew a Poké Bait. Hang it on a Poké Rod and water spawns are biased the same way a Snack biases land spawns. type, egg group, nature, IVs, shiny, hidden ability, rarity bucket.",
+    "intro": "Cook up to 3 seasonings into a Poké Bait, hang it on a Poké Rod and bias water spawns by type, egg group, nature, IVs, shiny odds, hidden ability or rarity bucket.",
     "navLabel": "Bait"
   },
   "cookies": {

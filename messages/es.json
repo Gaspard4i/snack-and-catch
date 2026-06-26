@@ -202,7 +202,8 @@
     "sort": "Orden",
     "search": "Buscar",
     "remaining": "{count} restantes",
-    "noMatch": "Sin resultados."
+    "noMatch": "Sin resultados.",
+    "share": "Compartir"
   },
   "juice": {
     "title": "Aprijuice maker",
@@ -327,7 +328,9 @@
     "filtersPosition": "4. Position",
     "filtersStructure": "3b. Nearby structure",
     "structure": "Structure",
-    "structureAny": "Any structure"
+    "structureAny": "Any structure",
+    "reset": "Reiniciar",
+    "share": "Compartir"
   },
   "pokedexUi": {
     "searchPlaceholder": "Buscar Cobblemon por nombre…",

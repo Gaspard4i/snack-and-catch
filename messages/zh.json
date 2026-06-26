@@ -202,7 +202,8 @@
     "sort": "排序",
     "search": "搜索",
     "remaining": "剩余 {count}",
-    "noMatch": "无匹配。"
+    "noMatch": "无匹配。",
+    "share": "分享"
   },
   "juice": {
     "title": "Aprijuice maker",
@@ -327,7 +328,9 @@
     "filtersPosition": "4. Position",
     "filtersStructure": "3b. Nearby structure",
     "structure": "Structure",
-    "structureAny": "Any structure"
+    "structureAny": "Any structure",
+    "reset": "重置",
+    "share": "分享"
   },
   "pokedexUi": {
     "searchPlaceholder": "按名称搜索…",

@@ -19,6 +19,41 @@ export type RawBaitEffect = {
   [k: string]: unknown;
 };
 
+/**
+ * Faithful port of Cobblemon's `SpawnBaitUtils.mergeEffects`. When several
+ * bait seasonings sit in the pot, effects sharing the same (type, subcategory)
+ * stack: their chances add (capped at 100%) and their values add then round
+ * UP (ceil). So three Star-Piece-like berries each granting "shiny ×4" merge
+ * into a single "shiny ×12" effect rather than three separate ×4 chips.
+ *
+ * Grouping is on the raw upstream `type`/`subcategory` strings (namespaced),
+ * exactly like the mod — we don't normalise before grouping so two effects
+ * only merge when the mod would merge them.
+ */
+export function mergeRawBaitEffects(effects: RawBaitEffect[]): RawBaitEffect[] {
+  const groups = new Map<string, RawBaitEffect>();
+  const order: string[] = [];
+  for (const e of effects) {
+    const key = `${e.type ?? ""}|${e.subcategory ?? ""}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.chance = (existing.chance ?? 0) + (e.chance ?? 0);
+      existing.value = (existing.value ?? 0) + (e.value ?? 0);
+    } else {
+      groups.set(key, { ...e, chance: e.chance ?? 0, value: e.value ?? 0 });
+      order.push(key);
+    }
+  }
+  return order.map((key) => {
+    const g = groups.get(key)!;
+    return {
+      ...g,
+      chance: Math.min(1, g.chance ?? 0),
+      value: Math.ceil(g.value ?? 0),
+    };
+  });
+}
+
 export type BaitEffectKind =
   | "bite_time"
   | "rarity_bucket"

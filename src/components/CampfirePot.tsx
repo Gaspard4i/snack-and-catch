@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { RotateCcw, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Spinner, TopProgress, AttractedCardSkeleton, Skeleton } from "./Loader";
 import {
@@ -24,6 +24,13 @@ import { NameRecipeModal } from "./NameRecipeModal";
 import { SeasoningPickerSheet } from "./SeasoningPickerSheet";
 import { MultiSelect, type MultiSelectOption } from "./MultiSelect";
 import { SnackEffectsSummary } from "./SnackEffectsSummary";
+import { ShareRecipeButton } from "./ShareRecipeButton";
+import {
+  encodeSnackState,
+  decodeSnackState,
+  type SnackShareState,
+  type SnackSort,
+} from "@/lib/share-state";
 import type { FormattedBaitEffect } from "@/lib/recommend/bait-effects";
 
 type BaitEffect = FormattedBaitEffect;
@@ -302,6 +309,13 @@ const NAMESPACE_OPTIONS: MultiSelectOption[] = [
 const FLAVOURS = ["SWEET", "SPICY", "DRY", "BITTER", "SOUR"] as const;
 const KINDS = ["all", "berry", "vanilla"] as const;
 
+/** Query keys the share-state owns, used to detect a shareable URL. */
+const SHARE_KEYS = new Set([
+  "s", "biome", "dim", "ctx", "struct", "src", "time", "ns", "weather",
+  "sky", "light", "moon", "minY", "maxY", "pot", "aq", "at", "ab", "asort",
+  "shiny",
+]);
+
 const FLAVOUR_COLORS: Record<string, string> = {
   SWEET: "#f8b3d7",
   SPICY: "#e85a3a",
@@ -545,6 +559,158 @@ export function CampfirePot({ mode = "snack" }: { mode?: PotMode } = {}) {
     const handle = window.requestAnimationFrame(apply);
     return () => window.cancelAnimationFrame(handle);
   }, [seasonings]);
+
+  /**
+   * Shareable state ⇄ URL. The whole maker config (slots + every filter)
+   * is mirrored into the query string so a copied link reproduces the
+   * exact screen. We hydrate once on mount (after the seasoning catalog
+   * loads, so slugs resolve to objects), then keep the URL in sync on
+   * every change. `hydratedRef` gates the sync effect so it never writes
+   * a stale empty URL before hydration ran.
+   */
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    if (seasonings.length === 0) return;
+    if (typeof window === "undefined") return;
+    hydratedRef.current = true;
+    const sp = new URLSearchParams(window.location.search);
+    // Nothing to hydrate if no shareable key is present (the deep-link
+    // effects above own `load`/`dimension`/`biome`/`seasoning`).
+    if (!sp.get("s") && ![...sp.keys()].some((k) => SHARE_KEYS.has(k))) return;
+    const st = decodeSnackState(sp);
+
+    const apply = () => {
+      const next: SlotState = [null, null, null];
+      st.slots.slice(0, 3).forEach((slug, i) => {
+        if (!slug) return;
+        const s = seasonings.find((x) => x.slug === slug);
+        if (s) next[i] = s;
+      });
+      if (st.slots.length > 0) setSlots(next);
+      if (st.biomes.length) setBiomes(st.biomes);
+      if (st.dimensions.length) setDimensions(st.dimensions);
+      if (st.contexts.length) setContexts(st.contexts);
+      if (st.structures.length) setStructures(st.structures);
+      if (st.sources.length) setSources(st.sources);
+      if (st.times.length) setTimes(st.times);
+      if (st.namespaces.length) setAllowedNamespaces(st.namespaces);
+      if (st.weather) setWeather(st.weather);
+      if (st.skyExposure) setSkyExposure(st.skyExposure);
+      if (st.lightLevel) setLightLevel(st.lightLevel);
+      if (st.moonPhase) setMoonPhase(st.moonPhase);
+      if (st.minY) setMinY(st.minY);
+      if (st.maxY) setMaxY(st.maxY);
+      if (st.potColour) {
+        const match = POT_COLOURS.find((c) => c.slug === st.potColour);
+        if (match) setPotColour(match);
+      }
+      if (st.attQuery) setAttQuery(st.attQuery);
+      if (st.attTypes.length) setAttTypes(st.attTypes);
+      if (st.attBuckets.length) setAttBuckets(st.attBuckets);
+      if (st.attSort !== "probability") setAttSort(st.attSort);
+      if (st.showShiny) setShowShiny(true);
+    };
+    // Defer one frame like the other hydration effects — setting slots and
+    // filters synchronously races R3F's canvas connect path.
+    const handle = window.requestAnimationFrame(apply);
+    return () => window.cancelAnimationFrame(handle);
+  }, [seasonings]);
+
+  // Reset the maker back to its initial state — empty slots, default pot,
+  // and cleared filters (keeping the bait-mode context defaults). The URL
+  // sync effect then strips the query string automatically.
+  const canReset =
+    slots.some((s) => s !== null) ||
+    biomes.length > 0 ||
+    dimensions.length > 0 ||
+    structures.length > 0 ||
+    times.length > 0 ||
+    weather !== "" ||
+    skyExposure !== "" ||
+    lightLevel !== "" ||
+    moonPhase !== "" ||
+    minY !== "" ||
+    maxY !== "" ||
+    potColour.slug !== null ||
+    attQuery !== "" ||
+    attTypes.length > 0 ||
+    attBuckets.length > 0 ||
+    attSort !== "probability" ||
+    showShiny ||
+    (isBait
+      ? false
+      : contexts.length > 0);
+
+  const resetSnack = () => {
+    setSlots([null, null, null]);
+    setBiomes([]);
+    setDimensions([]);
+    setStructures([]);
+    setTimes([]);
+    setContexts(isBait ? ["surface", "submerged", "seafloor"] : []);
+    setSources(["cobblemon"]);
+    setAllowedNamespaces(["cobblemon", "minecraft"]);
+    setWeather("");
+    setSkyExposure("");
+    setLightLevel("");
+    setMoonPhase("");
+    setMinY("");
+    setMaxY("");
+    setPotColour(POT_COLOURS[0]);
+    setAttQuery("");
+    setAttTypes([]);
+    setAttBuckets([]);
+    setAttSort("probability");
+    setShowShiny(false);
+    setActiveFlavours(new Set());
+    setKindFilter("all");
+    setFilterQuery("");
+  };
+
+  // Current shareable state, derived from the live UI state.
+  const shareState = useMemo<SnackShareState>(
+    () => ({
+      slots: slots.map((s) => s?.slug ?? null),
+      biomes,
+      dimensions,
+      contexts,
+      structures,
+      sources,
+      times,
+      namespaces: allowedNamespaces,
+      weather,
+      skyExposure,
+      lightLevel,
+      moonPhase,
+      minY,
+      maxY,
+      potColour: potColour.slug,
+      attQuery,
+      attTypes,
+      attBuckets,
+      attSort: attSort as SnackSort,
+      showShiny,
+    }),
+    [
+      slots, biomes, dimensions, contexts, structures, sources, times,
+      allowedNamespaces, weather, skyExposure, lightLevel, moonPhase, minY,
+      maxY, potColour, attQuery, attTypes, attBuckets, attSort, showShiny,
+    ],
+  );
+
+  // Keep the URL in sync with the live state (after hydration). We rewrite
+  // with replaceState so back-button history isn't flooded while the user
+  // tweaks filters.
+  const shareQuery = useMemo(() => encodeSnackState(shareState), [shareState]);
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.search.replace(/^\?/, "") === shareQuery) return;
+    url.search = shareQuery;
+    window.history.replaceState({}, "", url.toString());
+  }, [shareQuery]);
 
   /**
    * The cross-axis filter that all dropdowns share. We assemble it from
@@ -1134,7 +1300,28 @@ export function CampfirePot({ mode = "snack" }: { mode?: PotMode } = {}) {
             </div>
             <div className="text-[10px] text-muted uppercase">{t("seasoningSlotsCount", { count: 3 })}</div>
 
-            <SaveSnackButton slots={slots} potColour={potColour.hex} mode={mode} />
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <SaveSnackButton slots={slots} potColour={potColour.hex} mode={mode} />
+              <button
+                type="button"
+                onClick={resetSnack}
+                disabled={!canReset}
+                aria-label={t("reset")}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs hover:bg-subtle transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <RotateCcw className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {t("reset")}
+              </button>
+              <ShareRecipeButton
+                title={isBait ? "Poké Bait recipe" : "Poké Snack recipe"}
+                text={
+                  isBait
+                    ? "Check out this Poké Bait recipe on Snack & Catch."
+                    : "Check out this Poké Snack recipe on Snack & Catch."
+                }
+                label={t("share")}
+              />
+            </div>
           </div>
         </div>
       </aside>

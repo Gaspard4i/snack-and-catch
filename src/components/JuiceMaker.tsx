@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUp,
@@ -15,6 +15,8 @@ import { useTranslations } from "next-intl";
 import { ItemIcon } from "./ItemIcon";
 import { Spinner, TopProgress, Skeleton } from "./Loader";
 import { OwnedBerriesPicker } from "./juice/OwnedBerriesPicker";
+import { ShareRecipeButton } from "./ShareRecipeButton";
+import { encodeJuiceState, decodeJuiceState } from "@/lib/share-state";
 import type {
   Apricorn,
   Flavour,
@@ -170,18 +172,82 @@ export function JuiceMaker() {
   const [activeFlavours, setActiveFlavours] = useState<Set<Flavour>>(new Set());
   const [ignoredStats, setIgnoredStats] = useState<Set<RidingStat>>(new Set());
 
+  const hydratedRef = useRef(false);
   useEffect(() => {
     fetch("/api/juice")
       .then((r) => r.json())
       .then((d: { berries?: BerryDTO[] }) => {
         const list = d.berries ?? [];
         setBerries(list);
-        // Default: user owns every berry. They can uncheck what they don't have.
-        setOwnedBerries(new Set(list.map((b) => b.slug)));
+        // Hydrate from a shared URL if present, else default to owning
+        // every berry (the user unchecks what they're missing).
+        const shared =
+          typeof window !== "undefined"
+            ? decodeJuiceState(window.location.search)
+            : null;
+        hydratedRef.current = true;
+        const allSlugs = new Set(list.map((b) => b.slug));
+        if (shared && shared.ownedBerries.length > 0) {
+          setOwnedBerries(new Set(shared.ownedBerries.filter((s) => allSlugs.has(s))));
+        } else {
+          setOwnedBerries(allSlugs);
+        }
+        if (shared && shared.ownedApricorns.length > 0) {
+          setOwnedApricorns(
+            new Set(shared.ownedApricorns.filter((a): a is Apricorn =>
+              (APRICORNS as string[]).includes(a),
+            )),
+          );
+        }
+        if (shared && Object.keys(shared.target).length > 0) {
+          setTargetPoints((prev) => {
+            const next = { ...prev };
+            for (const [stat, v] of Object.entries(shared.target)) {
+              if ((RIDE_STATS as string[]).includes(stat)) {
+                next[stat as RidingStat] = v;
+              }
+            }
+            return next;
+          });
+        }
+        if (shared && shared.ignoredStats.length > 0) {
+          setIgnoredStats(
+            new Set(
+              shared.ignoredStats.filter((s): s is RidingStat =>
+                (RIDE_STATS as string[]).includes(s),
+              ),
+            ),
+          );
+        }
       })
       .catch(() => setBerries([]))
       .finally(() => setBerriesLoading(false));
   }, []);
+
+  // Mirror the maker state into the URL so the screen is shareable.
+  const ownsAllBerries =
+    berries.length > 0 && ownedBerries.size === berries.length;
+  const ownsAllApricorns = ownedApricorns.size === APRICORNS.length;
+  const shareQuery = useMemo(
+    () =>
+      encodeJuiceState(
+        {
+          ownedBerries: [...ownedBerries],
+          ownedApricorns: [...ownedApricorns],
+          target: targetPoints,
+          ignoredStats: [...ignoredStats],
+        },
+        { ownsAllBerries, ownsAllApricorns },
+      ),
+    [ownedBerries, ownedApricorns, targetPoints, ignoredStats, ownsAllBerries, ownsAllApricorns],
+  );
+  useEffect(() => {
+    if (!hydratedRef.current || typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.search.replace(/^\?/, "") === shareQuery) return;
+    url.search = shareQuery;
+    window.history.replaceState({}, "", url.toString());
+  }, [shareQuery]);
 
   // Spent points ignore stats the user explicitly opted out of — those
   // are not consuming any budget.
@@ -380,6 +446,14 @@ export function JuiceMaker() {
   return (
     <div className="space-y-6">
       <TopProgress active={berriesLoading || suggestLoading} />
+
+      <div className="flex justify-end">
+        <ShareRecipeButton
+          title="Aprijuice plan"
+          text="Check out this Aprijuice plan on Snack & Catch."
+          label={tc("share")}
+        />
+      </div>
 
       {/* Step 1 — owned apricorns + berries */}
       <section className="rounded-xl border border-border bg-card p-4 space-y-4">

@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "Snack & Catch",
-    "tagline": "Pour chaque Cobblemon : quel snack cuisiner pour l'attirer, où le spawner, dans quelles conditions.",
+    "tagline": "Cuisine le bon Poké Snack, brasse le bon Aprijuice, trouve où chaque Cobblemon spawn et sous quelles conditions. Basé sur les vraies données du mod.",
     "indexedSpecies": "{count} espèces indexées."
   },
   "footer": {
@@ -41,14 +41,14 @@
   },
   "cake": {
     "title": "Poké Snack maker",
-    "intro": "Compose un Poké Snack en faisant glisser un bait seasoning dans un slot. Selon le seasoning absorbé, le Snack attire des Cobblemon selon leur type, egg group, nature ou IV ; d'autres seasonings boostent le shiny, le talent caché, ou la rarity bucket. Place le Snack au sol pour attirer les Cobblemon dans un rayon de 8 blocs."
+    "intro": "Choisis jusqu'à 3 seasonings à cuire dans le Campfire Pot, puis filtre par dimension, biome, structure, heure, météo, lune et lumière pour voir exactement quels Cobblemon ton Snack va attirer."
   },
   "biome": {
     "spawnsHere": "Spawns répertoriés ({count})"
   },
   "about": {
     "title": "À propos",
-    "intro": "Snack & Catch référence les données publiées par le mod Cobblemon et ses addons populaires. Chaque donnée affichée est liée à sa source.",
+    "intro": "Snack & Catch reproduit les pipelines de snack, juice et spawn du mod Cobblemon à partir de ses données open-source. Chaque valeur du site est traçable jusqu'à sa source mod ou addon.",
     "sources": "Sources de données",
     "api": "API publique",
     "apiIntro": "Endpoint JSON read-only, cache 60s, rate limit 60 req/min/IP.",
@@ -78,6 +78,7 @@
     "placeholder": "Cherche un Cobblemon (ex: pikachu, victini…)",
     "submit": "Chercher",
     "title": "Rechercher un Cobblemon",
+    "intro": "Trouve un Cobblemon par son nom et affine par type, palier de rareté ou source de données. Touche un résultat pour ouvrir sa page d'espèce.",
     "noResults": "Aucun résultat pour « {q} ».",
     "loading": "Chargement…"
   },
@@ -202,11 +203,12 @@
     "sort": "Tri",
     "search": "Recherche",
     "remaining": "{count} restants",
-    "noMatch": "Aucun résultat."
+    "noMatch": "Aucun résultat.",
+    "share": "Partager"
   },
   "juice": {
     "title": "Aprijuice maker",
-    "intro": "Prépare un aprijuice dans le Campfire Pot. La couleur de l'apricorn donne un set de deltas de stats de monture ; les baies ajoutées en seasoning apportent des points de flavour convertis en boosts via la table des paliers (15 → 1pt, 35 → 2pt, 45 → 3pt, 55 → 4pt, 75 → 5pt, 105 → 6pt).",
+    "intro": "Choisis un apricorn et jusqu'à 3 baies ; le solveur trouve la recette qui colle à tes stats de monture cibles. Les baies franchissent les paliers de flavour (15 / 35 / 45 / 55 / 75 / 105 points) pour ajouter des boosts au-dessus du baseline de l'apricorn.",
     "modeCook": "Cuisiner un jus",
     "modeSuggest": "Je veux une stat → proposer",
     "targetTitle": "Classe les stats de monture par priorité",
@@ -327,7 +329,9 @@
     "shiny": "Shiny",
     "noAttracted": "Aucun Cobblemon ne correspond. Retire des filtres.",
     "dropHint": "Dépose un bait seasoning ici",
-    "previewDisclaimer": "Prévisu indicative. le snack en jeu peut être différent."
+    "previewDisclaimer": "Prévisu indicative. le snack en jeu peut être différent.",
+    "reset": "Réinitialiser",
+    "share": "Partager"
   },
   "pokedexUi": {
     "searchPlaceholder": "Rechercher un Cobblemon…",
@@ -373,7 +377,7 @@
   },
   "bait": {
     "title": "Atelier Poké Bait",
-    "intro": "Place des bait seasonings dans le pot de cuisson pour préparer un Poké Bait. Accroche-le sur une Poké Rod et il influence les apparitions aquatiques comme un Snack influence celles au sol. type, egg group, nature, IVs, shiny, talent caché, palier de rareté.",
+    "intro": "Cuis jusqu'à 3 seasonings en Poké Bait, accroche-le sur une Poké Rod et biaise les spawns aquatiques par type, egg group, nature, IVs, shiny, talent caché ou palier de rareté.",
     "navLabel": "Bait"
   },
   "cookies": {
